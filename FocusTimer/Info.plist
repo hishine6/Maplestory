@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 앱의 내부 이름 / 화면에 보이는 이름 -->
+    <key>CFBundleName</key>
+    <string>FocusTimer</string>
+    <key>CFBundleDisplayName</key>
+    <string>Focus Timer</string>
+
+    <!-- 앱의 고유 식별자 (회사/본인.앱이름 형태) -->
+    <key>CFBundleIdentifier</key>
+    <string>com.tony.FocusTimer</string>
+
+    <!-- 실제 실행될 파일 이름 (Contents/MacOS/ 안의 파일명과 같아야 함) -->
+    <key>CFBundleExecutable</key>
+    <string>FocusTimer</string>
+
+    <!-- 아이콘 파일 (Resources/AppIcon.icns) -->
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <!-- 최소 macOS 버전 -->
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+</dict>
+</plist>

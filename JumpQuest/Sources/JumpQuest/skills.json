@@ -1,0 +1,4 @@
+[
+  { "key": "S", "name": "파워 빔", "emoji": "⚡️", "damage": 3, "range": 320, "cooldown": 2.5, "mpCost": 25, "shape": "beam",   "height": 24 },
+  { "key": "D", "name": "강타",    "emoji": "💥", "damage": 4, "range": 70,  "cooldown": 1.2, "mpCost": 15, "shape": "strike", "height": 70 }
+]

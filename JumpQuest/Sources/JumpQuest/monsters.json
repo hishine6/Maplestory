@@ -1,0 +1,6 @@
+[
+  { "emoji": "🍄", "maxHP": 30, "speed": 55,  "xpReward": 1, "touchDamage": 8,  "dropID": "wood_sword", "dropChance": 0.30, "goldReward": 5 },
+  { "emoji": "🐌", "maxHP": 18, "speed": 32,  "xpReward": 1, "touchDamage": 6,  "dropID": "straw_hat",  "dropChance": 0.30, "goldReward": 4 },
+  { "emoji": "👾", "maxHP": 45, "speed": 85,  "xpReward": 3, "touchDamage": 14, "dropID": "iron_sword", "dropChance": 0.18, "goldReward": 15 },
+  { "emoji": "🦇", "maxHP": 24, "speed": 105, "xpReward": 2, "touchDamage": 10, "dropID": "cloth_top",  "dropChance": 0.22, "goldReward": 9 }
+]

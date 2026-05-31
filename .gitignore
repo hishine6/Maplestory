@@ -1,0 +1,16 @@
+# Swift Package Manager build cache
+.build/
+
+# Built app bundles (produced by build_app.sh)
+*.app/
+
+# Generated app icons (regenerate with make_icon.sh / make_icon.swift)
+AppIcon.iconset/
+AppIcon1024.png
+AppIcon.icns
+
+# macOS
+.DS_Store
+
+# Claude Code machine-local settings
+.claude/settings.local.json

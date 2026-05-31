@@ -1,0 +1,9 @@
+[
+  { "id": "wood_sword",  "name": "나무 검",   "emoji": "🗡️", "slot": "weapon", "rarity": "common", "attack": 1, "defense": 0, "hpBonus": 0,  "price": 30 },
+  { "id": "iron_sword",  "name": "강철 검",   "emoji": "⚔️", "slot": "weapon", "rarity": "rare",   "attack": 3, "defense": 0, "hpBonus": 0,  "price": 120 },
+  { "id": "flame_blade", "name": "화염검",    "emoji": "🔥", "slot": "weapon", "rarity": "epic",   "attack": 6, "defense": 1, "hpBonus": 0,  "price": 450 },
+  { "id": "straw_hat",   "name": "밀짚모자",  "emoji": "👒", "slot": "hat",    "rarity": "common", "attack": 0, "defense": 1, "hpBonus": 0,  "price": 25 },
+  { "id": "iron_helm",   "name": "철 투구",   "emoji": "⛑️", "slot": "hat",    "rarity": "rare",   "attack": 0, "defense": 2, "hpBonus": 10, "price": 110 },
+  { "id": "cloth_top",   "name": "천 갑옷",   "emoji": "🦺", "slot": "top",    "rarity": "common", "attack": 0, "defense": 1, "hpBonus": 5,  "price": 35 },
+  { "id": "plate_top",   "name": "판금 갑옷", "emoji": "🛡️", "slot": "top",    "rarity": "epic",   "attack": 1, "defense": 4, "hpBonus": 30, "price": 450 }
+]
