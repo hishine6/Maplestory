@@ -14,3 +14,6 @@ AppIcon.icns
 
 # Claude Code machine-local settings
 .claude/settings.local.json
+
+# Reference images (copyrighted, kept locally only)
+마을.png

@@ -30,8 +30,21 @@ final class SkillSlot {
     var cooldownLeft: CGFloat = 0
     var icon: SKLabelNode!
     var cdLabel: SKLabelNode!
+    var keyLabel: SKLabelNode!
 
     init(type: SkillType, keyCode: UInt16) { self.type = type; self.keyCode = keyCode }
+}
+
+// 바닥에 떨어진 전리품 (주워야 획득, 20초 후 소멸)
+enum DropKind { case item(String); case gold(Int) }
+@MainActor
+final class GroundDrop {
+    let node: SKLabelNode
+    let kind: DropKind
+    var life: CGFloat
+    init(node: SKLabelNode, kind: DropKind, life: CGFloat) {
+        self.node = node; self.kind = kind; self.life = life
+    }
 }
 
 // 게임의 "무대".
@@ -65,7 +78,7 @@ final class GameScene: SKScene {
     var level = 1
     var xp = 0
     var kills = 0
-    var xpToNext: Int { level * 3 }
+    var xpToNext: Int { LevelTable.toNext(level) }
 
     // ── 인벤토리 / 장비 ───────────────────────────────────────
     var inventory: [String] = []                 // 보유 아이템 id (중복 허용)
@@ -89,7 +102,7 @@ final class GameScene: SKScene {
     let sellFraction: CGFloat = 0.5
     var shopOpen = false
     var shopPanel: SKNode?
-    var anyModalOpen: Bool { inventoryOpen || statsOpen || shopOpen }
+    var anyModalOpen: Bool { inventoryOpen || statsOpen || shopOpen || worldMapOpen || keybindsOpen }
 
     // 장비에서 나오는 보너스
     var equippedItems: [ItemType] { equipped.values.compactMap { ItemCatalog.item($0) } }
@@ -102,8 +115,8 @@ final class GameScene: SKScene {
     var bonusHP:  Int { equipHP  + statHPpts * hpPerPoint }
 
     // ── 월드 크기 (뷰포트 720x480과 분리) ──────────────────────
-    let worldW: CGFloat = 2400
-    let worldH: CGFloat = 900
+    var worldW: CGFloat = 2400   // 영역별로 loadArea가 갱신
+    var worldH: CGFloat = 900
     var viewW: CGFloat { size.width }    // 720 — 뷰포트
     var viewH: CGFloat { size.height }   // 480
 
@@ -134,14 +147,37 @@ final class GameScene: SKScene {
     // ── 월드 ──────────────────────────────────────────────────
     var solids: [CGRect] = []
     var monsters: [Monster] = []
+    var drops: [GroundDrop] = []
     var skills: [SkillSlot] = []
     var respawnQueue: [(time: CGFloat, surface: Surface)] = []
     var lastTime: TimeInterval = 0
     var keyMonitor: Any?
 
+    // ── 영역(Area) / 포털 / NPC ──
+    var worldLayer: SKNode!                    // 모든 영역 노드의 부모. loadArea가 비움.
+    var currentArea: Area = .field
+    struct Portal { let node: SKNode; let rect: CGRect; let target: Area }
+    var portals: [Portal] = []
+    var shopNPC: (node: SKNode, rect: CGRect)?
+    var interactPressed = false
+    var interactCooldown: CGFloat = 0
+
+    // ── 월드맵 / 키설정 모달 ──
+    var worldMapOpen = false
+    var worldMapPanel: SKNode?
+    var keybindsOpen = false
+    var keybindsPanel: SKNode?
+    var capturingAction: GameAction? = nil     // non-nil = 다음 키 입력을 이 액션에 바인딩
+
+    // ── 키 바인딩 / 캐릭터 ID ──
+    static let defaultCharID = "용사"
+    var charID: String = GameScene.defaultCharID
+    var binds: [GameAction: UInt16] = GameScene.defaultBinds
+
     // ── HUD ───────────────────────────────────────────────────
     var levelLabel: SKLabelNode!
     var killsLabel: SKLabelNode!
+    var charLabel: SKLabelNode!
     var expBarFill: SKSpriteNode!
     var hpBarFill: SKSpriteNode!
     var mpBarFill: SKSpriteNode!
@@ -152,49 +188,41 @@ final class GameScene: SKScene {
         anchorPoint = .zero
         backgroundColor = SKColor(red: 0.60, green: 0.85, blue: 1.0, alpha: 1.0)
 
-        setupCamera()                                   // 먼저 (HUD/모달이 카메라에 붙음)
-        addGround()                                     // 이제 worldW 너비
-        // 점프(620)로 한 칸씩 오를 수 있는 지그재그 계단 (각 단 ~90px 차이)
-        addPlatform(x: 320,  y: 129, width: 180)   // 윗면 140
-        addPlatform(x: 580,  y: 219, width: 150)   // 230
-        addPlatform(x: 840,  y: 309, width: 160)   // 320
-        addPlatform(x: 1100, y: 219, width: 200)   // 230
-        addPlatform(x: 1360, y: 309, width: 150)   // 320
-        addPlatform(x: 1620, y: 219, width: 180)   // 230
-        addPlatform(x: 1880, y: 129, width: 160)   // 140
-        addPlatform(x: 2140, y: 219, width: 200)   // 230
-        addClouds()
-        addPlayer()
-        buildSurfaces()
-        addHUD()
-        addSkills()
-        addMiniMap()
-        setupKeyboard()
+        setupCamera()        // cam + hudLayer + worldLayer
+        addPlayer()          // 씬 자식 → 영역 전환에도 유지
+        addHUD()             // 하단 상태바 (한 번만)
+        addSkills()          // 스킬 아이콘 (한 번만)
+        setupKeyboard()      // 라이브 binds 모니터
 
-        if let s = SaveStore.load() {
+        binds = GameScene.defaultBinds                  // 기본값 먼저
+        let save = SaveStore.load()
+        if let s = save {
             level = s.level; xp = s.xp; kills = s.kills
-            // 저장된 아이템 불러오기 (카탈로그에 있는 유효한 것만)
             inventory = (s.inventory ?? []).filter { ItemCatalog.item($0) != nil }
             equipped = [:]
             for (raw, id) in (s.equipped ?? [:]) {
                 if let slot = EquipSlot(rawValue: raw),
-                   let item = ItemCatalog.item(id), item.slot == slot {
-                    equipped[slot] = id
-                }
+                   let item = ItemCatalog.item(id), item.slot == slot { equipped[slot] = id }
             }
-            // 능력치 분배 불러오기
-            statATK = max(0, s.statATK ?? 0)
-            statDEF = max(0, s.statDEF ?? 0)
-            statHPpts = max(0, s.statHP ?? 0)
-            unspentAP = max(0, s.unspentAP ?? 0)
+            statATK = max(0, s.statATK ?? 0); statDEF = max(0, s.statDEF ?? 0)
+            statHPpts = max(0, s.statHP ?? 0); unspentAP = max(0, s.unspentAP ?? 0)
             gold = max(0, s.gold ?? 0)
-            reconcileAP()                 // 구버전·고레벨 세이브에 AP 소급 지급
+            reconcileAP()
             if hp > maxHP { hp = maxHP }
+            if let b = s.binds {                        // 저장된 키만 덮어쓰기
+                for (k, v) in b { if let a = GameAction(rawValue: k) { binds[a] = UInt16(v) } }
+            }
+            charID = (s.charID?.isEmpty == false) ? s.charID! : GameScene.defaultCharID
+        }
+        refreshSkillKeyLabels()                         // 스킬 아이콘 키 라벨을 binds로 맞춤
+
+        let startArea = Area(rawValue: save?.area ?? "") ?? .field
+        loadArea(startArea, spawnAt: nil)               // 지형/몬스터/미니맵 빌드 + 플레이어 배치
+
+        if save != nil {
             popText("이어하기! Lv \(level)", at: player.position,
                     color: SKColor(red: 0.15, green: 0.45, blue: 0.9, alpha: 1), size: 26)
         }
-
-        for s in surfaces { spawnMonster(on: s) }
         updateHUD()
     }
 
@@ -206,6 +234,10 @@ final class GameScene: SKScene {
         hudLayer = SKNode()
         hudLayer.zPosition = 1000     // 모든 월드 노드 위
         cam.addChild(hudLayer)
+
+        worldLayer = SKNode()         // 영역 콘텐츠 부모 (loadArea가 비움)
+        worldLayer.zPosition = 0
+        addChild(worldLayer)
     }
 
     func updateCamera() {
@@ -215,13 +247,140 @@ final class GameScene: SKScene {
         cam.position = CGPoint(x: cx, y: cy)
     }
 
+    // ── 영역(Area) 전환 ───────────────────────────────────────
+    func areaSize(_ a: Area) -> (w: CGFloat, h: CGFloat) {
+        switch a {
+        case .field: return (2400, 900)
+        case .town:  return (1200, 600)   // 마을은 더 작음
+        }
+    }
+
+    func buildAreaContent(_ a: Area) {
+        addGround()                        // worldW 너비 (영역별)
+        switch a {
+        case .field:
+            addPlatform(x: 320,  y: 129, width: 180)
+            addPlatform(x: 580,  y: 219, width: 150)
+            addPlatform(x: 840,  y: 309, width: 160)
+            addPlatform(x: 1100, y: 219, width: 200)
+            addPlatform(x: 1360, y: 309, width: 150)
+            addPlatform(x: 1620, y: 219, width: 180)
+            addPlatform(x: 1880, y: 129, width: 160)
+            addPlatform(x: 2140, y: 219, width: 200)
+            addClouds()
+            makePortal(at: CGPoint(x: 120, y: 90), target: .town, label: "🚪 마을로")
+        case .town:
+            addPlatform(x: 360, y: 160, width: 220)
+            addPlatform(x: 840, y: 160, width: 220)
+            addClouds()
+            makeShopNPC(at: CGPoint(x: 600, y: 50))
+            makePortal(at: CGPoint(x: 1080, y: 90), target: .field, label: "🚪 사냥터로")
+        }
+    }
+
+    // 현재 영역을 비우고 target을 다시 짓는다.
+    func loadArea(_ target: Area, spawnAt: CGPoint?) {
+        worldLayer.removeAllChildren()     // 지형/몬스터/포털/NPC/FX/드롭 (player는 씬 자식이라 안전)
+        solids.removeAll(); surfaces.removeAll(); monsters.removeAll()
+        respawnQueue.removeAll(); portals.removeAll(); shopNPC = nil; drops.removeAll()
+
+        currentArea = target
+        let sz = areaSize(target); worldW = sz.w; worldH = sz.h
+
+        buildAreaContent(target)
+        buildSurfaces()
+        rebuildMiniMap()
+
+        if target == .field { for surf in surfaces { spawnMonster(on: surf) } }
+
+        player.position = spawnAt ?? defaultSpawn(for: target)
+        velocityY = 0; onGround = false
+        leftPressed = false; rightPressed = false
+        updateCamera()
+        updateHUD()
+        saveProgress()
+    }
+
+    func defaultSpawn(for a: Area) -> CGPoint {
+        switch a {
+        case .field: return CGPoint(x: 360, y: 200)
+        case .town:  return CGPoint(x: 200, y: 90)
+        }
+    }
+
+    // 포털로 입장했을 때 돌아가는 포털 옆에 세움 (즉시 되돌아가지 않게)
+    func arrivalSpawn(in target: Area, cameFrom: Area) -> CGPoint? {
+        if let back = portals.first(where: { $0.target == cameFrom }) {
+            return CGPoint(x: back.node.position.x + 70, y: back.node.position.y)
+        }
+        return nil
+    }
+
+    func makePortal(at p: CGPoint, target: Area, label: String) {
+        let n = SKNode(); n.position = p; n.zPosition = 4
+        let glow = SKShapeNode(rect: CGRect(x: -22, y: -40, width: 44, height: 84), cornerRadius: 10)
+        glow.fillColor = SKColor(red: 0.5, green: 0.3, blue: 0.9, alpha: 0.4)
+        glow.strokeColor = SKColor(white: 1, alpha: 0.7); glow.lineWidth = 2
+        n.addChild(glow)
+        glow.run(.repeatForever(.sequence([.fadeAlpha(to: 0.2, duration: 0.7),
+                                           .fadeAlpha(to: 0.55, duration: 0.7)])))
+        let swirl = SKLabelNode(text: "🌀"); swirl.fontSize = 30
+        swirl.verticalAlignmentMode = .center; swirl.position = CGPoint(x: 0, y: 6)
+        n.addChild(swirl)
+        let tag = SKLabelNode(text: label); tag.fontSize = 12; tag.fontColor = .white
+        tag.position = CGPoint(x: 0, y: 52); n.addChild(tag)
+        worldLayer.addChild(n)
+        portals.append(Portal(node: n, rect: CGRect(x: p.x - 22, y: p.y - 40, width: 44, height: 84),
+                              target: target))
+    }
+
+    func makeShopNPC(at p: CGPoint) {
+        let n = SKNode(); n.position = p; n.zPosition = 4
+        let body = SKLabelNode(text: "🧙"); body.fontSize = 40; body.verticalAlignmentMode = .bottom
+        n.addChild(body)
+        let tag = SKLabelNode(text: "상점 (↑)"); tag.fontSize = 12; tag.fontColor = .yellow
+        tag.position = CGPoint(x: 0, y: 54); n.addChild(tag)
+        worldLayer.addChild(n)
+        shopNPC = (n, CGRect(x: p.x - 28, y: p.y, width: 56, height: 56))
+    }
+
+    func rebuildMiniMap() {
+        miniMap?.removeFromParent(); miniMap = nil
+        miniMonsterDots.removeAll()
+        addMiniMap()
+    }
+
+    func tryInteract() {
+        guard !anyModalOpen, interactCooldown <= 0 else { return }
+        let pp = player.position
+        for portal in portals where portal.rect.contains(pp) {
+            interactCooldown = 0.4
+            let from = currentArea
+            loadArea(portal.target, spawnAt: nil)
+            if let sp = arrivalSpawn(in: portal.target, cameFrom: from) {
+                player.position = sp; updateCamera()
+            }
+            popText("\(portal.target.title) 입장!", at: player.position,
+                    color: SKColor(red: 0.7, green: 0.5, blue: 1, alpha: 1), size: 22)
+            return
+        }
+        if let npc = shopNPC, npc.rect.contains(pp) { openShop() }
+    }
+
+    func openShop() {
+        guard !anyModalOpen else { return }
+        shopOpen = true
+        leftPressed = false; rightPressed = false
+        buildShopPanel()
+    }
+
     // ── 월드 만들기 ───────────────────────────────────────────
     func addGround() {
         let h: CGFloat = 50
         let ground = SKSpriteNode(color: SKColor(red: 0.36, green: 0.72, blue: 0.36, alpha: 1),
                                   size: CGSize(width: worldW, height: h))
         ground.position = CGPoint(x: worldW / 2, y: h / 2)
-        addChild(ground)
+        worldLayer.addChild(ground)
         solids.append(CGRect(x: 0, y: 0, width: worldW, height: h))
     }
 
@@ -230,7 +389,7 @@ final class GameScene: SKScene {
         let p = SKSpriteNode(color: SKColor(red: 0.55, green: 0.40, blue: 0.28, alpha: 1),
                              size: CGSize(width: width, height: h))
         p.position = CGPoint(x: x, y: y)
-        addChild(p)
+        worldLayer.addChild(p)
         solids.append(CGRect(x: x - width/2, y: y - h/2, width: width, height: h))
     }
 
@@ -244,7 +403,7 @@ final class GameScene: SKScene {
             c.fontSize = fs
             c.position = CGPoint(x: x, y: y)
             c.verticalAlignmentMode = .center
-            addChild(c)
+            worldLayer.addChild(c)
         }
     }
 
@@ -306,7 +465,7 @@ final class GameScene: SKScene {
         node.fontSize = 36
         node.position = CGPoint(x: s.cx, y: s.topY)
         node.verticalAlignmentMode = .bottom
-        addChild(node)
+        worldLayer.addChild(node)
         let mon = Monster(node: node, type: type, dir: Bool.random() ? 1 : -1,
                           minX: s.cx - s.span, maxX: s.cx + s.span, baseY: s.topY)
         monsters.append(mon)
@@ -314,93 +473,83 @@ final class GameScene: SKScene {
 
     // ── HUD ───────────────────────────────────────────────────
     // HUD는 hudLayer(카메라 자식)에 붙어 화면에 고정. 좌표는 화면중심(0,0) 기준.
+    // 하단 상태바 (메이플식): HP/MP/EXP + 레벨 + 아이디. 단축키 안내는 없앰.
     func addHUD() {
-        let hint = SKLabelNode(text: "←→ 이동 · Space · A 공격 · S/D 스킬 · I 장비 · C 능력치 · B 상점")
-        hint.fontSize = 13
-        hint.fontColor = SKColor(white: 0.15, alpha: 0.9)
-        hint.position = CGPoint(x: 0, y: viewH/2 - 22)
-        hudLayer.addChild(hint)
+        let bottomY = -viewH/2 + 12
+        let leftX   = -viewW/2 + 90
+
+        let strip = SKSpriteNode(color: SKColor(white: 0.05, alpha: 0.5),
+                                 size: CGSize(width: viewW, height: 70))
+        strip.position = CGPoint(x: 0, y: bottomY + 23); strip.zPosition = 49
+        hudLayer.addChild(strip)
 
         levelLabel = SKLabelNode(text: "Lv 1")
-        levelLabel.fontSize = 18
-        levelLabel.fontColor = SKColor(white: 0.1, alpha: 1)
-        levelLabel.horizontalAlignmentMode = .left
-        levelLabel.position = CGPoint(x: -viewW/2 + 14, y: viewH/2 - 30)
+        levelLabel.fontSize = 15; levelLabel.fontColor = .white
+        levelLabel.horizontalAlignmentMode = .left; levelLabel.zPosition = 51
+        levelLabel.position = CGPoint(x: leftX, y: bottomY + 50)
         hudLayer.addChild(levelLabel)
 
-        killsLabel = SKLabelNode(text: "처치 0")
-        killsLabel.fontSize = 16
+        charLabel = SKLabelNode(text: charID)
+        charLabel.fontSize = 14; charLabel.fontColor = SKColor(red: 1, green: 0.95, blue: 0.7, alpha: 1)
+        charLabel.horizontalAlignmentMode = .left; charLabel.zPosition = 51
+        charLabel.position = CGPoint(x: leftX + 48, y: bottomY + 50)
+        hudLayer.addChild(charLabel)
+
+        // 처치/골드는 우상단 유지
+        killsLabel = SKLabelNode(text: "처치 0"); killsLabel.fontSize = 16
         killsLabel.fontColor = SKColor(white: 0.1, alpha: 1)
         killsLabel.horizontalAlignmentMode = .right
-        killsLabel.position = CGPoint(x: viewW/2 - 14, y: viewH/2 - 30)
-        hudLayer.addChild(killsLabel)
-
-        goldLabel = SKLabelNode(text: "💰 0")
-        goldLabel.fontSize = 16
+        killsLabel.position = CGPoint(x: viewW/2 - 14, y: viewH/2 - 30); hudLayer.addChild(killsLabel)
+        goldLabel = SKLabelNode(text: "💰 0"); goldLabel.fontSize = 16
         goldLabel.fontColor = SKColor(red: 0.85, green: 0.6, blue: 0.05, alpha: 1)
         goldLabel.horizontalAlignmentMode = .right
-        goldLabel.position = CGPoint(x: viewW/2 - 14, y: viewH/2 - 50)
-        hudLayer.addChild(goldLabel)
+        goldLabel.position = CGPoint(x: viewW/2 - 14, y: viewH/2 - 50); hudLayer.addChild(goldLabel)
 
-        expBarFill = addBar(icon: "⭐️", y: viewH/2 - 54, color: SKColor(red: 1.0, green: 0.82, blue: 0.2, alpha: 1))
-        hpBarFill  = addBar(icon: "❤️", y: viewH/2 - 74, color: SKColor(red: 0.95, green: 0.30, blue: 0.30, alpha: 1))
-        mpBarFill  = addBar(icon: "💧", y: viewH/2 - 94, color: SKColor(red: 0.25, green: 0.55, blue: 1.0, alpha: 1))
+        hpBarFill  = addBar(icon: "❤️", x: leftX, y: bottomY + 34, color: SKColor(red: 0.95, green: 0.30, blue: 0.30, alpha: 1))
+        mpBarFill  = addBar(icon: "💧", x: leftX, y: bottomY + 18, color: SKColor(red: 0.25, green: 0.55, blue: 1.0, alpha: 1))
+        expBarFill = addBar(icon: "⭐️", x: leftX, y: bottomY + 2,  color: SKColor(red: 1.0, green: 0.82, blue: 0.2, alpha: 1))
     }
 
-    func addBar(icon: String, y: CGFloat, color: SKColor) -> SKSpriteNode {
-        let label = SKLabelNode(text: icon)
-        label.fontSize = 16
-        label.verticalAlignmentMode = .center
-        label.position = CGPoint(x: -viewW/2 + 20, y: y)
-        hudLayer.addChild(label)
-
+    func addBar(icon: String, x: CGFloat, y: CGFloat, color: SKColor) -> SKSpriteNode {
+        let label = SKLabelNode(text: icon); label.fontSize = 14
+        label.verticalAlignmentMode = .center; label.zPosition = 51
+        label.position = CGPoint(x: x, y: y); hudLayer.addChild(label)
         let bg = SKSpriteNode(color: SKColor(white: 0.3, alpha: 0.35), size: CGSize(width: barWidth, height: 12))
-        bg.anchorPoint = CGPoint(x: 0, y: 0.5)
-        bg.position = CGPoint(x: -viewW/2 + 38, y: y)
-        hudLayer.addChild(bg)
-
+        bg.anchorPoint = CGPoint(x: 0, y: 0.5); bg.position = CGPoint(x: x + 18, y: y)
+        bg.zPosition = 51; hudLayer.addChild(bg)
         let fill = SKSpriteNode(color: color, size: CGSize(width: barWidth, height: 12))
-        fill.anchorPoint = CGPoint(x: 0, y: 0.5)
-        fill.position = bg.position
-        fill.zPosition = 1
-        hudLayer.addChild(fill)
-        return fill
+        fill.anchorPoint = CGPoint(x: 0, y: 0.5); fill.position = bg.position
+        fill.zPosition = 52; hudLayer.addChild(fill); return fill
     }
 
     // 스킬 슬롯들을 만들어 화면 하단에 배치
     func addSkills() {
-        var x: CGFloat = -viewW/2 + 40    // 화면 좌하단부터
+        var x: CGFloat = 16    // 하단 중앙 (좌측 상태바와 우측 미니맵 사이)
         for type in SkillCatalog.all {
             guard let code = keyCode(forLetter: type.key) else { continue }
             let slot = SkillSlot(type: type, keyCode: code)
+            let action: GameAction = (skills.count == 0) ? .skill1 : .skill2   // 이번 슬롯 인덱스
 
             let bg = SKSpriteNode(color: SKColor(white: 0.1, alpha: 0.35), size: CGSize(width: 52, height: 52))
-            bg.position = CGPoint(x: x, y: -viewH/2 + 44)
+            bg.position = CGPoint(x: x, y: -viewH/2 + 44); bg.zPosition = 50
             hudLayer.addChild(bg)
 
             let icon = SKLabelNode(text: type.emoji)
-            icon.fontSize = 28
-            icon.verticalAlignmentMode = .center
-            icon.position = CGPoint(x: x, y: -viewH/2 + 46)
+            icon.fontSize = 28; icon.verticalAlignmentMode = .center
+            icon.position = CGPoint(x: x, y: -viewH/2 + 46); icon.zPosition = 51
             hudLayer.addChild(icon)
 
-            let keyLabel = SKLabelNode(text: type.key)
-            keyLabel.fontSize = 11
-            keyLabel.fontColor = .white
+            let keyLabel = SKLabelNode(text: keyName(binds[action] ?? 0))
+            keyLabel.fontSize = 11; keyLabel.fontColor = .white; keyLabel.zPosition = 51
             keyLabel.position = CGPoint(x: x + 17, y: -viewH/2 + 24)
             hudLayer.addChild(keyLabel)
 
             let cd = SKLabelNode(text: "")
-            cd.fontSize = 22
-            cd.fontColor = .white
-            cd.verticalAlignmentMode = .center
-            cd.position = CGPoint(x: x, y: -viewH/2 + 46)
-            cd.zPosition = 2
-            cd.isHidden = true
+            cd.fontSize = 22; cd.fontColor = .white; cd.verticalAlignmentMode = .center
+            cd.position = CGPoint(x: x, y: -viewH/2 + 46); cd.zPosition = 52; cd.isHidden = true
             hudLayer.addChild(cd)
 
-            slot.icon = icon
-            slot.cdLabel = cd
+            slot.icon = icon; slot.cdLabel = cd; slot.keyLabel = keyLabel
             skills.append(slot)
             x += 64
         }
@@ -410,7 +559,7 @@ final class GameScene: SKScene {
     func addMiniMap() {
         miniMap = SKNode()
         miniMap.zPosition = 60
-        miniMap.position = CGPoint(x: viewW/2 - miniW - 12, y: -viewH/2 + 12)   // 우하단 (HUD 라벨과 안 겹침)
+        miniMap.position = CGPoint(x: viewW/2 - miniW - 12, y: -viewH/2 + 78)   // 우하단 (하단 상태바 위)
         hudLayer.addChild(miniMap)
 
         let bg = SKShapeNode(rect: CGRect(x: 0, y: 0, width: miniW, height: miniH), cornerRadius: 4)
@@ -453,9 +602,11 @@ final class GameScene: SKScene {
 
     func updateHUD() {
         levelLabel.text = "Lv \(level)"
+        charLabel.text = charID
         killsLabel.text = "처치 \(kills)"
         goldLabel.text = "💰 \(gold)"
-        expBarFill.size = CGSize(width: barWidth * clamp01(CGFloat(xp) / CGFloat(xpToNext)), height: 12)
+        let expRatio: CGFloat = (level >= LevelTable.maxLevel) ? 1 : clamp01(CGFloat(xp) / CGFloat(xpToNext))
+        expBarFill.size = CGSize(width: barWidth * expRatio, height: 12)
         hpBarFill.size  = CGSize(width: barWidth * clamp01(CGFloat(hp) / CGFloat(maxHP)), height: 12)
         mpBarFill.size  = CGSize(width: barWidth * clamp01(mp / maxMP), height: 12)
     }
@@ -499,15 +650,17 @@ final class GameScene: SKScene {
             player.position = CGPoint(x: newX, y: newY)
         }
 
-        // 몬스터 순찰
-        for mon in monsters {
-            var x = mon.node.position.x + mon.dir * mon.type.speed * dt
-            if x <= mon.minX { x = mon.minX; mon.dir = 1 }
-            else if x >= mon.maxX { x = mon.maxX; mon.dir = -1 }
-            mon.bobPhase += dt * 4
-            let bob = CGFloat(sin(Double(mon.bobPhase))) * 4
-            mon.node.position = CGPoint(x: x, y: mon.baseY + bob)
-            mon.node.xScale = mon.dir < 0 ? -1 : 1
+        // 몬스터 순찰 (창 열려있으면 정지 → 닫을 때 갑툭튀 피해 방지)
+        if !anyModalOpen {
+            for mon in monsters {
+                var x = mon.node.position.x + mon.dir * mon.type.speed * dt
+                if x <= mon.minX { x = mon.minX; mon.dir = 1 }
+                else if x >= mon.maxX { x = mon.maxX; mon.dir = -1 }
+                mon.bobPhase += dt * 4
+                let bob = CGFloat(sin(Double(mon.bobPhase))) * 4
+                mon.node.position = CGPoint(x: x, y: mon.baseY + bob)
+                mon.node.xScale = mon.dir < 0 ? -1 : 1
+            }
         }
 
         // 타이머들
@@ -544,6 +697,30 @@ final class GameScene: SKScene {
             for i in respawnQueue.indices { respawnQueue[i].time -= dt }
             for r in respawnQueue where r.time <= 0 { spawnMonster(on: r.surface) }
             respawnQueue.removeAll { $0.time <= 0 }
+        }
+
+        // 상호작용 (포털/NPC) — 모니터가 세운 플래그를 1회 소비
+        if interactCooldown > 0 { interactCooldown -= dt }
+        if interactPressed { interactPressed = false; tryInteract() }
+
+        // 바닥 전리품: 줍기 + 수명(20초)
+        if !drops.isEmpty {
+            var i = drops.count - 1
+            while i >= 0 {
+                let d = drops[i]
+                if !anyModalOpen { d.life -= dt }   // 모달 중엔 수명도 정지 (메뉴 때문에 손실 방지)
+                let dp = d.node.position
+                let near = !anyModalOpen
+                    && abs(dp.x - player.position.x) < 30 && abs(dp.y - player.position.y) < 46
+                if near {
+                    collectDrop(d); d.node.removeFromParent(); drops.remove(at: i)
+                } else if d.life <= 0 {
+                    d.node.removeFromParent(); drops.remove(at: i)
+                } else if d.life <= 3 {
+                    d.node.alpha = sin(d.life * 14) > 0 ? 1.0 : 0.35   // 사라지기 직전 깜빡
+                }
+                i -= 1
+            }
         }
 
         updateCamera()
@@ -592,7 +769,7 @@ final class GameScene: SKScene {
         sword.xScale = facing
         sword.zRotation = facing > 0 ? 0.9 : -0.9
         sword.zPosition = 8
-        addChild(sword)
+        worldLayer.addChild(sword)
         sword.run(.sequence([
             .group([.rotate(byAngle: facing > 0 ? -1.6 : 1.6, duration: 0.18),
                     .moveBy(x: facing * 16, y: -8, duration: 0.18),
@@ -654,19 +831,19 @@ final class GameScene: SKScene {
             beam.anchorPoint = CGPoint(x: facing > 0 ? 0 : 1, y: 0.5)   // 앞쪽으로 뻗음
             beam.position = CGPoint(x: player.position.x + facing*16, y: player.position.y + 6)
             beam.zPosition = 9
-            addChild(beam)
+            worldLayer.addChild(beam)
             beam.run(.sequence([.group([.scaleY(to: 2.0, duration: 0.18), .fadeOut(withDuration: 0.25)]),
                                 .removeFromParent()]))
         case .strike:
             let fx = SKLabelNode(text: emoji); fx.fontSize = 30
             fx.position = CGPoint(x: player.position.x + facing*range*0.7, y: player.position.y + 4)
-            fx.zPosition = 9; addChild(fx)
+            fx.zPosition = 9; worldLayer.addChild(fx)
             fx.run(.sequence([.group([.scale(to: 2.4, duration: 0.16), .fadeOut(withDuration: 0.22)]),
                               .removeFromParent()]))
         case .area:
             let fx = SKLabelNode(text: emoji); fx.fontSize = 32
             fx.position = CGPoint(x: player.position.x + facing*range*0.45, y: player.position.y + 6)
-            fx.zPosition = 9; addChild(fx)
+            fx.zPosition = 9; worldLayer.addChild(fx)
             fx.run(.sequence([.group([.scale(to: 3.0, duration: 0.25), .fadeOut(withDuration: 0.32)]),
                               .removeFromParent()]))
         }
@@ -693,23 +870,22 @@ final class GameScene: SKScene {
             .group([.scale(to: 1.8, duration: 0.15), .fadeOut(withDuration: 0.2)]),
             .removeFromParent()
         ]))
-        popText("+\(mon.type.xpReward)", at: CGPoint(x: node.position.x, y: node.position.y + 30),
-                color: SKColor(red: 1.0, green: 0.82, blue: 0.2, alpha: 1))
+        popText("+\(mon.type.xpReward) EXP", at: CGPoint(x: node.position.x, y: node.position.y + 30),
+                color: SKColor(red: 0.5, green: 1.0, blue: 0.6, alpha: 1))
         kills += 1
-        gold += mon.type.gold
-        popText("💰+\(mon.type.gold)", at: CGPoint(x: node.position.x + 24, y: node.position.y + 30),
-                color: SKColor(red: 1.0, green: 0.84, blue: 0.2, alpha: 1))
         gainXP(mon.type.xpReward)
-        maybeDrop(from: mon, at: node.position)   // 아이템 드롭 시도
-        respawnQueue.append((3.0, surfaces.randomElement()!))
+        spawnDrop(.gold(mon.type.gold), at: node.position)   // 골드는 바닥에 떨어짐
+        maybeDrop(from: mon, at: node.position)               // 아이템도 (확률) 바닥에
+        respawnQueue.append((4.5, surfaces.randomElement()!))  // 리젠 살짝 느리게
         saveProgress()
     }
 
     func saveProgress() {
         let eq = Dictionary(uniqueKeysWithValues: equipped.map { ($0.key.rawValue, $0.value) })
+        let bindsOut = Dictionary(uniqueKeysWithValues: binds.map { ($0.key.rawValue, Int($0.value)) })
         SaveStore.save(SaveData(level: level, xp: xp, kills: kills, inventory: inventory, equipped: eq,
                                 statATK: statATK, statDEF: statDEF, statHP: statHPpts, unspentAP: unspentAP,
-                                gold: gold))
+                                gold: gold, binds: bindsOut, area: currentArea.rawValue, charID: charID))
     }
 
     // ── 능력치(AP) 시스템 ─────────────────────────────────────
@@ -774,8 +950,9 @@ final class GameScene: SKScene {
         close.position = CGPoint(x: cx + w/2 - 22, y: cy + h/2 - 28); panel.addChild(close)
 
         var sy = cy + h/2 - 60
+        let expLine = level >= LevelTable.maxLevel ? "EXP MAX" : "EXP \(xp) / \(xpToNext)"
         for line in ["Lv \(level)        처치 \(kills)",
-                     "EXP \(xp) / \(xpToNext)",
+                     expLine,
                      "HP \(hp) / \(maxHP)        MP \(Int(mp)) / \(Int(maxMP))"] {
             addRow(to: panel, text: line, color: .white, name: nil, cx: cx, y: sy, width: rowW)
             sy -= 26
@@ -936,7 +1113,7 @@ final class GameScene: SKScene {
             if sy < cy - h/2 + 30 { break }
         }
 
-        let hint = SKLabelNode(text: "윗줄=구매 · 아랫줄=판매 · B 닫기")
+        let hint = SKLabelNode(text: "윗줄=구매 · 아랫줄=판매 · ↑ 닫기")
         hint.fontSize = 11; hint.fontColor = SKColor(white: 0.8, alpha: 1)
         hint.position = CGPoint(x: cx, y: cy - h/2 + 12); panel.addChild(hint)
 
@@ -946,19 +1123,53 @@ final class GameScene: SKScene {
     // ── 인벤토리 / 장비 시스템 ────────────────────────────────
     func maybeDrop(from mon: Monster, at pos: CGPoint) {
         guard let id = mon.type.dropID,
-              let item = ItemCatalog.item(id),
+              ItemCatalog.item(id) != nil,
               CGFloat.random(in: 0...1) < mon.type.dropProbability else { return }
-        inventory.append(id)
-        spawnDropFX(item, at: pos)
-        popText("\(item.emoji) \(item.name) 획득!", at: CGPoint(x: pos.x, y: pos.y + 52),
-                color: rarityColor(item.rarity), size: 16)
-        if inventoryOpen { refreshInventoryPanel() }
+        spawnDrop(.item(id), at: pos)   // 바닥에 떨어뜨림 (주워야 획득)
+    }
+
+    // 바닥에 전리품을 떨어뜨림 (톡 튀어나와 자리잡고, 줍기 전까지 둥실)
+    func spawnDrop(_ kind: DropKind, at pos: CGPoint) {
+        let text: String
+        switch kind {
+        case .item(let id): text = ItemCatalog.item(id)?.emoji ?? "❓"
+        case .gold:         text = "💰"
+        }
+        let node = SKLabelNode(text: text)
+        node.fontSize = 22; node.verticalAlignmentMode = .center
+        node.position = pos; node.zPosition = 6
+        worldLayer.addChild(node)
+        let dx = CGFloat.random(in: -34...34)
+        node.run(.sequence([
+            .group([.moveBy(x: dx, y: 22, duration: 0.18), .scale(to: 1.15, duration: 0.18)]),
+            .moveBy(x: 0, y: -22, duration: 0.16),
+            .repeatForever(.sequence([.moveBy(x: 0, y: 3, duration: 0.5), .moveBy(x: 0, y: -3, duration: 0.5)]))
+        ]))
+        drops.append(GroundDrop(node: node, kind: kind, life: 20))
+    }
+
+    func collectDrop(_ d: GroundDrop) {
+        switch d.kind {
+        case .gold(let g):
+            gold += g
+            popText("💰 +\(g)", at: CGPoint(x: player.position.x, y: player.position.y + 44),
+                    color: SKColor(red: 1, green: 0.84, blue: 0.2, alpha: 1), size: 15)
+        case .item(let id):
+            inventory.append(id)
+            if let item = ItemCatalog.item(id) {
+                popText("\(item.emoji) \(item.name) 획득!", at: CGPoint(x: player.position.x, y: player.position.y + 50),
+                        color: rarityColor(item.rarity), size: 15)
+            }
+            if inventoryOpen { refreshInventoryPanel() }
+        }
+        updateHUD()
+        saveProgress()
     }
 
     func spawnDropFX(_ item: ItemType, at pos: CGPoint) {
         let l = SKLabelNode(text: item.emoji)
         l.fontSize = 26; l.position = pos; l.zPosition = 9
-        addChild(l)
+        worldLayer.addChild(l)
         l.run(.sequence([
             .group([.moveBy(x: 0, y: 24, duration: 0.3), .scale(to: 1.4, duration: 0.3)]),
             .group([.moveBy(x: 0, y: -8, duration: 0.25), .fadeOut(withDuration: 0.5)]),
@@ -1119,6 +1330,22 @@ final class GameScene: SKScene {
             if name == "shop_close" { toggleShop(); return }
             if name.hasPrefix("buy:")  { buy(String(name.dropFirst(4)));  return }
             if name.hasPrefix("sell:") { sell(String(name.dropFirst(5))); return }
+            // 월드맵
+            if name == "worldmap_close" { toggleWorldMap(); return }
+            if name.hasPrefix("travel:") {
+                if let a = Area(rawValue: String(name.dropFirst(7))), a != currentArea {
+                    toggleWorldMap(); loadArea(a, spawnAt: nil)
+                }
+                return
+            }
+            // 키 설정
+            if name == "keybinds_close" { toggleKeybinds(); return }
+            if name.hasPrefix("rebind:") {
+                if let a = GameAction(rawValue: String(name.dropFirst(7))) {
+                    capturingAction = a; refreshKeybindsPanel()
+                }
+                return
+            }
         }
     }
 
@@ -1127,11 +1354,17 @@ final class GameScene: SKScene {
         hp -= reduced
         invuln = 1.0
         popText("-\(reduced)", at: CGPoint(x: player.position.x, y: player.position.y + 36),
-                color: SKColor(red: 0.95, green: 0.3, blue: 0.3, alpha: 1))
-        player.run(.sequence([
-            .fadeAlpha(to: 0.3, duration: 0.08), .fadeAlpha(to: 1, duration: 0.08),
-            .fadeAlpha(to: 0.3, duration: 0.08), .fadeAlpha(to: 1, duration: 0.08)
-        ]))
+                color: SKColor(red: 1.0, green: 0.25, blue: 0.25, alpha: 1), size: 22)
+        // 깜빡임 (무적 동안 또렷하게)
+        player.run(.repeat(.sequence([.fadeAlpha(to: 0.2, duration: 0.07),
+                                      .fadeAlpha(to: 1, duration: 0.07)]), count: 6), withKey: "hurt")
+        // 빨강 피격 플래시 (캐릭터에 붙어 따라다님)
+        let flash = SKShapeNode(circleOfRadius: 24)
+        flash.fillColor = SKColor(red: 1, green: 0.15, blue: 0.15, alpha: 0.55)
+        flash.strokeColor = .clear; flash.zPosition = 3
+        player.addChild(flash)
+        flash.run(.sequence([.group([.scale(to: 1.7, duration: 0.2), .fadeOut(withDuration: 0.25)]),
+                             .removeFromParent()]))
         if hp <= 0 { die() }
         updateHUD()
     }
@@ -1141,21 +1374,51 @@ final class GameScene: SKScene {
                 color: SKColor(red: 0.9, green: 0.2, blue: 0.2, alpha: 1), size: 26)
         hp = maxHP
         mp = maxMP
-        player.position = CGPoint(x: 360, y: 200)
+        player.position = defaultSpawn(for: currentArea)
         velocityY = 0
         invuln = 1.5
     }
 
     func gainXP(_ n: Int) {
         xp += n
+        var leveled = false
         while xp >= xpToNext {
             xp -= xpToNext
             level += 1
             unspentAP += apPerLevel       // 레벨업 시 능력치 포인트 지급
-            popText("LEVEL UP! ⭐️ (+\(apPerLevel) AP)", at: CGPoint(x: player.position.x, y: player.position.y + 50),
-                    color: SKColor(red: 1.0, green: 0.6, blue: 0.1, alpha: 1), size: 24)
+            leveled = true
         }
+        if leveled { levelUpEffect() }
         updateHUD()
+    }
+
+    // 레벨업 큰 연출: 화면 번쩍 + "LEVEL N" + 반짝이
+    func levelUpEffect() {
+        let flash = SKSpriteNode(color: SKColor(red: 1, green: 1, blue: 0.6, alpha: 0.55),
+                                 size: CGSize(width: viewW, height: viewH))
+        flash.zPosition = 300; flash.position = .zero
+        hudLayer.addChild(flash)
+        flash.run(.sequence([.fadeOut(withDuration: 0.5), .removeFromParent()]))
+
+        let big = SKLabelNode(text: "LEVEL \(level)")
+        big.fontName = "AvenirNext-Heavy"; big.fontSize = 16
+        big.fontColor = SKColor(red: 1, green: 0.85, blue: 0.2, alpha: 1)
+        big.zPosition = 301; big.position = CGPoint(x: 0, y: 30); big.setScale(0.3)
+        hudLayer.addChild(big)
+        big.run(.sequence([.scale(to: 3.0, duration: 0.35), .wait(forDuration: 0.6),
+                           .fadeOut(withDuration: 0.4), .removeFromParent()]))
+
+        popText("능력치 포인트 +\(apPerLevel)", at: CGPoint(x: player.position.x, y: player.position.y + 56),
+                color: SKColor(red: 1.0, green: 0.6, blue: 0.1, alpha: 1), size: 16)
+
+        for i in 0..<12 {
+            let ang = CGFloat(i) / 12 * .pi * 2
+            let s = SKLabelNode(text: "✨"); s.fontSize = 18
+            s.position = player.position; s.zPosition = 11
+            worldLayer.addChild(s)
+            s.run(.sequence([.group([.moveBy(x: cos(ang)*70, y: sin(ang)*70, duration: 0.55),
+                                     .fadeOut(withDuration: 0.6)]), .removeFromParent()]))
+        }
     }
 
     func popText(_ text: String, at pos: CGPoint, color: SKColor, size fontSize: CGFloat = 20) {
@@ -1164,60 +1427,196 @@ final class GameScene: SKScene {
         l.fontColor = color
         l.position = pos
         l.zPosition = 10
-        addChild(l)
+        worldLayer.addChild(l)
         l.run(.sequence([
             .group([.moveBy(x: 0, y: 40, duration: 0.6), .fadeOut(withDuration: 0.6)]),
             .removeFromParent()
         ]))
     }
 
-    // ── 키보드 입력 ───────────────────────────────────────────
+    // ── 키보드 입력 (라이브 binds 디스패치 + 리바인드 캡처) ─────
     func setupKeyboard() {
-        var keySet: Set<UInt16> = [123, 124, 49, 126, 0, 34, 8, 11]  // ← → Space ↑ A I C B
-        for s in skills { keySet.insert(s.keyCode) }         // 스킬 키들도 가로채기
-        let ourKeys = keySet                                 // 클로저엔 불변 복사본을 캡처
-
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
             let keyCode = event.keyCode
             let isDown = event.type == .keyDown
             let isRepeat = event.isARepeat
-            guard ourKeys.contains(keyCode) else { return event }
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                if isDown {
-                    if self.statsOpen {
-                        // 능력치창: C(닫기)만
-                        if keyCode == 8, !isRepeat { self.toggleStats() }
-                    } else if self.inventoryOpen {
-                        // 장비창: I(닫기)만
-                        if keyCode == 34, !isRepeat { self.toggleInventory() }
-                    } else if self.shopOpen {
-                        // 상점창: B(닫기)만
-                        if keyCode == 11, !isRepeat { self.toggleShop() }
-                    } else {
-                        switch keyCode {
-                        case 123:     self.leftPressed = true
-                        case 124:     self.rightPressed = true
-                        case 49, 126: if !isRepeat { self.jump() }
-                        case 0:       if !isRepeat { self.attack() }
-                        case 34:      if !isRepeat { self.toggleInventory() }   // I = 장비창
-                        case 8:       if !isRepeat { self.toggleStats() }       // C = 능력치창
-                        case 11:      if !isRepeat { self.toggleShop() }        // B = 상점
-                        default:
-                            if !isRepeat, let slot = self.skills.first(where: { $0.keyCode == keyCode }) {
-                                self.useSkill(slot)
-                            }
-                        }
-                    }
-                } else {
-                    switch keyCode {
-                    case 123: self.leftPressed = false
-                    case 124: self.rightPressed = false
-                    default: break
-                    }
-                }
+            let consumed: Bool = MainActor.assumeIsolated {
+                guard let self else { return false }
+                return self.handleKey(keyCode: keyCode, isDown: isDown, isRepeat: isRepeat)
             }
-            return nil
+            return consumed ? nil : event   // 우리가 처리했을 때만 소비
         }
+    }
+
+    // true = 이벤트 소비, false = 통과
+    func handleKey(keyCode: UInt16, isDown: Bool, isRepeat: Bool) -> Bool {
+        // 1) 리바인드 캡처: 어떤 키든 잡아 액션에 할당 (Esc=취소)
+        if let action = capturingAction, isDown, !isRepeat {
+            if keyCode == 53 { capturingAction = nil; refreshKeybindsPanel(); return true }
+            rebind(action, to: keyCode)
+            return true
+        }
+        // 2) keyUp: 좌/우 해제만
+        if !isDown {
+            if keyCode == binds[.left]  { leftPressed = false;  return true }
+            if keyCode == binds[.right] { rightPressed = false; return true }
+            return false
+        }
+        // 3) 모달 열림: Esc는 항상 닫기 (안전장치) + 해당 토글 키만, 나머지 바운드 키는 흡수
+        if keyCode == 53, !isRepeat {   // Esc — 어떤 키 설정이어도 모달 탈출 가능
+            if inventoryOpen { toggleInventory(); return true }
+            if statsOpen { toggleStats(); return true }
+            if worldMapOpen { toggleWorldMap(); return true }
+            if keybindsOpen { toggleKeybinds(); return true }
+            if shopOpen { toggleShop(); return true }
+        }
+        if inventoryOpen { if !isRepeat, keyCode == binds[.inventory]    { toggleInventory() }; return binds.values.contains(keyCode) }
+        if statsOpen     { if !isRepeat, keyCode == binds[.stats]        { toggleStats() };     return binds.values.contains(keyCode) }
+        if worldMapOpen  { if !isRepeat, keyCode == binds[.worldmap]     { toggleWorldMap() };  return binds.values.contains(keyCode) }
+        if keybindsOpen  { if !isRepeat, keyCode == binds[.openKeybinds] { toggleKeybinds() };  return binds.values.contains(keyCode) }
+        if shopOpen      { if !isRepeat, keyCode == binds[.interact]     { toggleShop() };      return binds.values.contains(keyCode) }
+        // 4) 일반 플레이 (라이브 binds 역조회)
+        guard let action = binds.first(where: { $0.value == keyCode })?.key else { return false }
+        switch action {
+        case .left:  leftPressed = true
+        case .right: rightPressed = true
+        case .jump:  if !isRepeat { jump() }
+        case .attack: if !isRepeat { attack() }
+        case .skill1, .skill2: if !isRepeat, let s = skillSlot(for: action) { useSkill(s) }
+        case .inventory:    if !isRepeat { toggleInventory() }
+        case .stats:        if !isRepeat { toggleStats() }
+        case .worldmap:     if !isRepeat { toggleWorldMap() }
+        case .openKeybinds: if !isRepeat { toggleKeybinds() }
+        case .interact:     if !isRepeat { interactPressed = true }   // update()에서 소비
+        }
+        return true
+    }
+
+    static var defaultBinds: [GameAction: UInt16] {
+        func code(_ letter: String, _ fallback: UInt16) -> UInt16 {
+            let m: [String: UInt16] = ["A":0,"S":1,"D":2,"F":3,"C":8,"V":9,"B":11,
+                                       "Q":12,"W":13,"E":14,"R":15,"I":34]
+            return m[letter.uppercased()] ?? fallback
+        }
+        let s1 = SkillCatalog.all.indices.contains(0) ? SkillCatalog.all[0].key : "S"
+        let s2 = SkillCatalog.all.indices.contains(1) ? SkillCatalog.all[1].key : "D"
+        return [
+            .left: 123, .right: 124, .jump: 49, .attack: 0,
+            .skill1: code(s1, 1), .skill2: code(s2, 2),
+            .inventory: 34, .stats: 8, .worldmap: 13, .interact: 126, .openKeybinds: 14
+        ]
+    }
+
+    func keyName(_ code: UInt16) -> String {
+        let special: [UInt16: String] = [123:"←",124:"→",125:"↓",126:"↑",49:"Space",
+                                         36:"Enter",48:"Tab",53:"Esc",51:"⌫"]
+        if let s = special[code] { return s }
+        let letters: [UInt16: String] = [0:"A",1:"S",2:"D",3:"F",4:"H",5:"G",6:"Z",7:"X",
+                                         8:"C",9:"V",11:"B",12:"Q",13:"W",14:"E",15:"R",
+                                         16:"Y",17:"T",31:"O",32:"U",34:"I",35:"P",37:"L",
+                                         38:"J",40:"K",45:"N",46:"M"]
+        return letters[code] ?? "#\(code)"
+    }
+
+    func bindName(_ a: GameAction) -> String { binds[a].map { keyName($0) } ?? "—" }
+
+    func skillSlot(for action: GameAction) -> SkillSlot? {
+        switch action {
+        case .skill1: return skills.indices.contains(0) ? skills[0] : nil
+        case .skill2: return skills.indices.contains(1) ? skills[1] : nil
+        default: return nil
+        }
+    }
+
+    func refreshSkillKeyLabels() {
+        if skills.indices.contains(0) { skills[0].keyLabel?.text = bindName(.skill1) }
+        if skills.indices.contains(1) { skills[1].keyLabel?.text = bindName(.skill2) }
+    }
+
+    func rebind(_ action: GameAction, to code: UInt16) {
+        capturingAction = nil
+        let old = binds[action]                          // 이 액션의 기존 키
+        for (a, c) in binds where c == code && a != action {
+            binds[a] = old                               // 충돌 액션에 기존 키를 넘겨줌 (스왑 → 미바인딩 방지)
+        }
+        binds[action] = code
+        refreshSkillKeyLabels()
+        saveProgress()
+        refreshKeybindsPanel()
+    }
+
+    // ── 월드맵 모달 ───────────────────────────────────────────
+    func toggleWorldMap() {
+        if inventoryOpen { toggleInventory() }; if statsOpen { toggleStats() }
+        if shopOpen { toggleShop() }; if keybindsOpen { toggleKeybinds() }
+        worldMapOpen.toggle()
+        if worldMapOpen { leftPressed = false; rightPressed = false; buildWorldMapPanel() }
+        else { worldMapPanel?.removeFromParent(); worldMapPanel = nil }
+    }
+
+    func buildWorldMapPanel() {
+        let panel = SKNode(); panel.zPosition = 100; panel.name = "worldMapPanel"
+        let w: CGFloat = 360, h: CGFloat = 240, cx: CGFloat = 0, cy: CGFloat = 0
+        let rowW = w - 30
+        let bg = SKSpriteNode(color: SKColor(white: 0.08, alpha: 0.93), size: CGSize(width: w, height: h))
+        bg.position = CGPoint(x: cx, y: cy); bg.zPosition = -1; panel.addChild(bg)
+        let title = SKLabelNode(text: "월드 맵"); title.fontSize = 18; title.fontColor = .white
+        title.position = CGPoint(x: cx, y: cy + h/2 - 26); panel.addChild(title)
+        let close = SKLabelNode(text: "✕"); close.name = "worldmap_close"
+        close.fontSize = 20; close.fontColor = .white
+        close.position = CGPoint(x: cx + w/2 - 22, y: cy + h/2 - 28); panel.addChild(close)
+        var sy = cy + h/2 - 64
+        for a in Area.allCases {
+            let here = (a == currentArea)
+            let text = (here ? "📍 " : "🗺️ ") + a.title + (here ? "  (현재 위치)" : "  — 이동")
+            addRow(to: panel, text: text,
+                   color: here ? SKColor(red: 1, green: 0.85, blue: 0.3, alpha: 1) : .white,
+                   name: here ? nil : "travel:\(a.rawValue)", cx: cx, y: sy, width: rowW)
+            sy -= 32
+        }
+        let hint = SKLabelNode(text: "영역 클릭 = 이동 · \(bindName(.worldmap)) 닫기")
+        hint.fontSize = 11; hint.fontColor = SKColor(white: 0.8, alpha: 1)
+        hint.position = CGPoint(x: cx, y: cy - h/2 + 14); panel.addChild(hint)
+        hudLayer.addChild(panel); worldMapPanel = panel
+    }
+
+    // ── 키 설정 모달 ──────────────────────────────────────────
+    func toggleKeybinds() {
+        if inventoryOpen { toggleInventory() }; if statsOpen { toggleStats() }
+        if shopOpen { toggleShop() }; if worldMapOpen { toggleWorldMap() }
+        keybindsOpen.toggle(); capturingAction = nil
+        if keybindsOpen { leftPressed = false; rightPressed = false; buildKeybindsPanel() }
+        else { keybindsPanel?.removeFromParent(); keybindsPanel = nil }
+    }
+
+    func refreshKeybindsPanel() {
+        guard keybindsOpen else { return }
+        keybindsPanel?.removeFromParent(); keybindsPanel = nil; buildKeybindsPanel()
+    }
+
+    func buildKeybindsPanel() {
+        let panel = SKNode(); panel.zPosition = 100; panel.name = "keybindsPanel"
+        let w: CGFloat = 400, h: CGFloat = 400, cx: CGFloat = 0, cy: CGFloat = 0
+        let rowW = w - 30
+        let bg = SKSpriteNode(color: SKColor(white: 0.08, alpha: 0.93), size: CGSize(width: w, height: h))
+        bg.position = CGPoint(x: cx, y: cy); bg.zPosition = -1; panel.addChild(bg)
+        let title = SKLabelNode(text: "키 설정"); title.fontSize = 18; title.fontColor = .white
+        title.position = CGPoint(x: cx, y: cy + h/2 - 26); panel.addChild(title)
+        let close = SKLabelNode(text: "✕"); close.name = "keybinds_close"
+        close.fontSize = 20; close.fontColor = .white
+        close.position = CGPoint(x: cx + w/2 - 22, y: cy + h/2 - 28); panel.addChild(close)
+        var sy = cy + h/2 - 58
+        for a in GameAction.allCases {
+            let waiting = (capturingAction == a)
+            let key = waiting ? "[ 키를 누르세요… ]" : bindName(a)
+            addRow(to: panel, text: "\(a.title):  \(key)",
+                   color: waiting ? SKColor(red: 1, green: 0.85, blue: 0.3, alpha: 1) : .white,
+                   name: "rebind:\(a.rawValue)", cx: cx, y: sy, width: rowW)
+            sy -= 28
+        }
+        let hint = SKLabelNode(text: "행 클릭 → 새 키 입력 · Esc 취소 · \(bindName(.openKeybinds)) 닫기")
+        hint.fontSize = 11; hint.fontColor = SKColor(white: 0.8, alpha: 1)
+        hint.position = CGPoint(x: cx, y: cy - h/2 + 14); panel.addChild(hint)
+        hudLayer.addChild(panel); keybindsPanel = panel
     }
 }
