@@ -139,14 +139,15 @@ enum Area: String, Codable, CaseIterable {
 enum GameAction: String, Codable, CaseIterable {
     case left, right, jump, attack
     case skill1, skill2
-    case inventory, stats, worldmap, interact, openKeybinds
+    case inventory, stats, worldmap, interact, down, openKeybinds
     var title: String {
         switch self {
         case .left: return "왼쪽";   case .right: return "오른쪽"
         case .jump: return "점프";   case .attack: return "공격"
         case .skill1: return "스킬 1"; case .skill2: return "스킬 2"
         case .inventory: return "장비창"; case .stats: return "능력치창"
-        case .worldmap: return "월드맵"; case .interact: return "상호작용/포털"
+        case .worldmap: return "월드맵"; case .interact: return "위/포털/등반"
+        case .down: return "아래/내려가기"
         case .openKeybinds: return "키 설정"
         }
     }

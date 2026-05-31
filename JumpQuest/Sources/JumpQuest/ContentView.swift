@@ -5,8 +5,8 @@ import SpriteKit
 struct GameContainer: NSViewRepresentable {
     func makeNSView(context: Context) -> SKView {
         let skView = KeyableSKView()
-        let scene = GameScene(size: CGSize(width: 720, height: 480))
-        scene.scaleMode = .aspectFit           // 무대 크기를 720x480으로 "고정" (바닥이 항상 제대로 깔림)
+        let scene = GameScene(size: CGSize(width: 900, height: 600))
+        scene.scaleMode = .aspectFit           // 무대(뷰포트) 크기 고정. HUD는 viewW/viewH로 자동 맞춤
         skView.presentScene(scene)
         skView.ignoresSiblingOrder = true
         return skView
@@ -30,6 +30,6 @@ final class KeyableSKView: SKView {
 struct ContentView: View {
     var body: some View {
         GameContainer()
-            .frame(width: 720, height: 480)
+            .frame(width: 900, height: 600)
     }
 }

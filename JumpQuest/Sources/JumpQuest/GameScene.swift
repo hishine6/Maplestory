@@ -52,7 +52,7 @@ final class GameScene: SKScene {
 
     // ── 게임 느낌 조절 ────────────────────────────────────────
     let moveSpeed: CGFloat = 320
-    let jumpSpeed: CGFloat = 620
+    let jumpSpeed: CGFloat = 560   // 살짝 낮춤 (높은 지형은 밧줄로)
     let gravity:   CGFloat = 1600
     let playerHalfH: CGFloat = 22
     let attackRange: CGFloat = 95
@@ -162,6 +162,15 @@ final class GameScene: SKScene {
     var interactPressed = false
     var interactCooldown: CGFloat = 0
 
+    // ── 밧줄/등반 ──
+    struct Rope { let x: CGFloat; let bottomY: CGFloat; let topY: CGFloat }
+    var ropes: [Rope] = []
+    var climbing = false
+    var climbRope: Rope?
+    var upHeld = false
+    var downHeld = false
+    let climbSpeed: CGFloat = 165
+
     // ── 월드맵 / 키설정 모달 ──
     var worldMapOpen = false
     var worldMapPanel: SKNode?
@@ -251,7 +260,7 @@ final class GameScene: SKScene {
     func areaSize(_ a: Area) -> (w: CGFloat, h: CGFloat) {
         switch a {
         case .field: return (2400, 900)
-        case .town:  return (1200, 600)   // 마을은 더 작음
+        case .town:  return (1200, 640)   // 마을은 더 작음 (뷰포트 600보다는 크게)
         }
     }
 
@@ -267,8 +276,13 @@ final class GameScene: SKScene {
             addPlatform(x: 1620, y: 219, width: 180)
             addPlatform(x: 1880, y: 129, width: 160)
             addPlatform(x: 2140, y: 219, width: 200)
+            addPlatform(x: 1500, y: 459, width: 160)   // 밧줄로만 닿는 높은 발판
             addClouds()
             makePortal(at: CGPoint(x: 120, y: 90), target: .town, label: "🚪 마을로")
+            // 밧줄 (높은 지형 등반) — ↑ 잡고 오르기, ↓ 내려가기
+            makeRope(x: 840,  bottomY: 50, topY: 320)
+            makeRope(x: 1360, bottomY: 50, topY: 320)
+            makeRope(x: 1500, bottomY: 50, topY: 470)
         case .town:
             addPlatform(x: 360, y: 160, width: 220)
             addPlatform(x: 840, y: 160, width: 220)
@@ -283,6 +297,7 @@ final class GameScene: SKScene {
         worldLayer.removeAllChildren()     // 지형/몬스터/포털/NPC/FX/드롭 (player는 씬 자식이라 안전)
         solids.removeAll(); surfaces.removeAll(); monsters.removeAll()
         respawnQueue.removeAll(); portals.removeAll(); shopNPC = nil; drops.removeAll()
+        ropes.removeAll(); climbing = false; climbRope = nil; upHeld = false; downHeld = false
 
         currentArea = target
         let sz = areaSize(target); worldW = sz.w; worldH = sz.h
@@ -344,6 +359,49 @@ final class GameScene: SKScene {
         shopNPC = (n, CGRect(x: p.x - 28, y: p.y, width: 56, height: 56))
     }
 
+    // ── 밧줄(사다리) ──────────────────────────────────────────
+    func makeRope(x: CGFloat, bottomY: CGFloat, topY: CGFloat) {
+        let h = topY - bottomY
+        let rail = SKSpriteNode(color: SKColor(red: 0.74, green: 0.58, blue: 0.34, alpha: 1),
+                                size: CGSize(width: 5, height: h))
+        rail.position = CGPoint(x: x, y: (bottomY + topY)/2); rail.zPosition = 3
+        worldLayer.addChild(rail)
+        var ry = bottomY + 14                       // 가로대
+        while ry < topY - 4 {
+            let rung = SKSpriteNode(color: SKColor(red: 0.58, green: 0.43, blue: 0.24, alpha: 1),
+                                    size: CGSize(width: 15, height: 3))
+            rung.position = CGPoint(x: x, y: ry); rung.zPosition = 3
+            worldLayer.addChild(rung)
+            ry += 22
+        }
+        ropes.append(Rope(x: x, bottomY: bottomY, topY: topY))
+    }
+
+    // 잡을 수 있는 밧줄: ↑은 밧줄 몸통에서, ↓은 꼭대기 발판에서
+    func ropeNear(_ pos: CGPoint) -> Rope? {
+        let feet = pos.y - playerHalfH
+        for r in ropes where abs(pos.x - r.x) < 18 {
+            if upHeld   && feet >= r.bottomY - 6 && feet <= r.topY - 10 { return r }   // 위로 잡기
+            if downHeld && feet >= r.topY - 6   && feet <= r.topY + 10 { return r }    // 꼭대기에서 아래로
+        }
+        return nil
+    }
+
+    func startClimb(_ rope: Rope) {
+        climbing = true; climbRope = rope
+        player.position.x = rope.x
+        velocityY = 0
+        player.run(.repeatForever(.sequence([        // 등반 모션 (좌우로 살짝 흔들)
+            .rotate(toAngle: 0.13, duration: 0.22), .rotate(toAngle: -0.13, duration: 0.22)
+        ])), withKey: "climb")
+    }
+
+    func releaseClimb() {
+        climbing = false; climbRope = nil
+        player.removeAction(forKey: "climb")
+        player.zRotation = 0
+    }
+
     func rebuildMiniMap() {
         miniMap?.removeFromParent(); miniMap = nil
         miniMonsterDots.removeAll()
@@ -351,7 +409,7 @@ final class GameScene: SKScene {
     }
 
     func tryInteract() {
-        guard !anyModalOpen, interactCooldown <= 0 else { return }
+        guard !anyModalOpen, !climbing, interactCooldown <= 0 else { return }
         let pp = player.position
         for portal in portals where portal.rect.contains(pp) {
             interactCooldown = 0.4
@@ -627,27 +685,43 @@ final class GameScene: SKScene {
 
         // 플레이어 이동/중력 (창 열려있으면 멈춤 = 모달)
         if !anyModalOpen {
-            // 좌우 이동
-            let dir: CGFloat = (rightPressed ? 1 : 0) - (leftPressed ? 1 : 0)
-            var newX = player.position.x + dir * moveSpeed * dt
-            newX = min(max(newX, 20), worldW - 20)
-            if dir < 0 { player.xScale = -1 } else if dir > 0 { player.xScale = 1 }
+            if climbing, let rope = climbRope {
+                // 등반 중: 중력 없음, ↑↓로 상하 이동
+                let vy: CGFloat = (upHeld ? 1 : 0) - (downHeld ? 1 : 0)
+                let minC = rope.bottomY + playerHalfH
+                let maxC = rope.topY + playerHalfH
+                var newY = player.position.y + vy * climbSpeed * dt
+                newY = min(max(newY, minC), maxC)
+                player.position = CGPoint(x: rope.x, y: newY)
+                velocityY = 0; onGround = false
+                if newY >= maxC - 0.5 && upHeld { releaseClimb(); onGround = true }       // 꼭대기 → 발판
+                else if newY <= minC + 0.5 && downHeld { releaseClimb(); onGround = true } // 바닥 → 내려섬
+            } else {
+                // 좌우 이동
+                let dir: CGFloat = (rightPressed ? 1 : 0) - (leftPressed ? 1 : 0)
+                var newX = player.position.x + dir * moveSpeed * dt
+                newX = min(max(newX, 20), worldW - 20)
+                if dir < 0 { player.xScale = -1 } else if dir > 0 { player.xScale = 1 }
 
-            // 중력 + 착지
-            velocityY -= gravity * dt
-            var newY = player.position.y + velocityY * dt
-            let feetOld = player.position.y - playerHalfH
-            let feetNew = newY - playerHalfH
-            onGround = false
-            if velocityY <= 0 {
-                for r in solids where newX > r.minX && newX < r.maxX {
-                    let top = r.maxY
-                    if feetOld >= top - 1 && feetNew <= top {
-                        newY = top + playerHalfH; velocityY = 0; onGround = true; break
+                // 중력 + 착지
+                velocityY -= gravity * dt
+                var newY = player.position.y + velocityY * dt
+                let feetOld = player.position.y - playerHalfH
+                let feetNew = newY - playerHalfH
+                onGround = false
+                if velocityY <= 0 {
+                    for r in solids where newX > r.minX && newX < r.maxX {
+                        let top = r.maxY
+                        if feetOld >= top - 1 && feetNew <= top {
+                            newY = top + playerHalfH; velocityY = 0; onGround = true; break
+                        }
                     }
                 }
+                player.position = CGPoint(x: newX, y: newY)
+
+                // 밧줄 잡기 (↑ 또는 ↓ 누르고 밧줄과 겹치면)
+                if (upHeld || downHeld), let rope = ropeNear(player.position) { startClimb(rope) }
             }
-            player.position = CGPoint(x: newX, y: newY)
         }
 
         // 몬스터 순찰 (창 열려있으면 정지 → 닫을 때 갑툭튀 피해 방지)
@@ -729,6 +803,7 @@ final class GameScene: SKScene {
 
     // ── 플레이어 행동 ─────────────────────────────────────────
     func jump() {
+        if climbing { releaseClimb(); velocityY = jumpSpeed; onGround = false; return }  // 밧줄에서 점프 이탈
         guard onGround else { return }
         velocityY = jumpSpeed
         onGround = false
@@ -1370,6 +1445,8 @@ final class GameScene: SKScene {
     }
 
     func die() {
+        if climbing { releaseClimb() }      // 등반 중 사망 시 로프로 다시 끌려가지 않게
+        upHeld = false; downHeld = false
         popText("기절! 💫", at: CGPoint(x: player.position.x, y: player.position.y + 56),
                 color: SKColor(red: 0.9, green: 0.2, blue: 0.2, alpha: 1), size: 26)
         hp = maxHP
@@ -1456,10 +1533,12 @@ final class GameScene: SKScene {
             rebind(action, to: keyCode)
             return true
         }
-        // 2) keyUp: 좌/우 해제만
+        // 2) keyUp: 좌/우/위/아래 해제
         if !isDown {
-            if keyCode == binds[.left]  { leftPressed = false;  return true }
-            if keyCode == binds[.right] { rightPressed = false; return true }
+            if keyCode == binds[.left]     { leftPressed = false;  return true }
+            if keyCode == binds[.right]    { rightPressed = false; return true }
+            if keyCode == binds[.interact] { upHeld = false; return true }
+            if keyCode == binds[.down]     { downHeld = false; return true }
             return false
         }
         // 3) 모달 열림: Esc는 항상 닫기 (안전장치) + 해당 토글 키만, 나머지 바운드 키는 흡수
@@ -1487,7 +1566,8 @@ final class GameScene: SKScene {
         case .stats:        if !isRepeat { toggleStats() }
         case .worldmap:     if !isRepeat { toggleWorldMap() }
         case .openKeybinds: if !isRepeat { toggleKeybinds() }
-        case .interact:     if !isRepeat { interactPressed = true }   // update()에서 소비
+        case .interact:     upHeld = true; if !isRepeat { interactPressed = true }   // ↑: 등반/포털
+        case .down:         downHeld = true                                          // ↓: 등반 하강
         }
         return true
     }
@@ -1503,7 +1583,7 @@ final class GameScene: SKScene {
         return [
             .left: 123, .right: 124, .jump: 49, .attack: 0,
             .skill1: code(s1, 1), .skill2: code(s2, 2),
-            .inventory: 34, .stats: 8, .worldmap: 13, .interact: 126, .openKeybinds: 14
+            .inventory: 34, .stats: 8, .worldmap: 13, .interact: 126, .down: 125, .openKeybinds: 14
         ]
     }
 
