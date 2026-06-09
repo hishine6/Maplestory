@@ -17,3 +17,32 @@ AppIcon.icns
 
 # Reference images (copyrighted, kept locally only)
 마을.png
+character.png
+character2.png
+image.png
+
+# MapleStory sprite rips & maple.gg-derived assets — local study only, not distributed
+JumpQuest/maple_body_pale/
+JumpQuest/Sources/JumpQuest/player_base.png
+
+# 스프라이트 프레임(메이플 파생) 로컬 전용
+JumpQuest/Sources/JumpQuest/sprites/
+
+JumpQuest/파란 달팽이/
+
+# maplestory.io 에서 받은 에셋(파생)·렌더 테스트 — 로컬 전용
+JumpQuest/tools/fetched/
+JumpQuest/tools/fetched_char/
+JumpQuest/tools/layering_test/
+CharacterSpriteSheet*/
+
+# 메이플 스프라이트 rip(상위 sprites 폴더) / 아이콘 이미지 덤프 — 로컬 전용, 배포 금지
+JumpQuest/sprites/
+bytecode_icons_svg_png/
+
+# 그 외 이미지/움짤 (실수 커밋 방지)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp

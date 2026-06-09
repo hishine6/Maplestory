@@ -30,6 +30,15 @@
     <!-- 최소 macOS 버전 -->
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
+
+    <!-- LSUIElement = true → Dock 아이콘 없이 '메뉴바 전용 앱'으로 시작.
+         (대시보드 창을 열 때만 잠깐 일반 앱처럼 전환했다가 닫으면 다시 숨어요) -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <!-- 위치 권한 안내 문구 ('현재 위치 찍기'를 누를 때 한 번 물어봐요) -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>공부한 장소를 기록에 함께 남기기 위해 현재 위치를 사용해요.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSPrincipalClass</key>

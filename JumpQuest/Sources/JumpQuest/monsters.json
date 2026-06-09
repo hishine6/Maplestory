@@ -1,6 +1,1296 @@
 [
-  { "emoji": "🍄", "maxHP": 30, "speed": 55,  "xpReward": 10, "touchDamage": 8,  "dropID": "wood_sword", "dropChance": 0.30, "goldReward": 5 },
-  { "emoji": "🐌", "maxHP": 18, "speed": 32,  "xpReward": 8,  "touchDamage": 6,  "dropID": "straw_hat",  "dropChance": 0.30, "goldReward": 4 },
-  { "emoji": "👾", "maxHP": 45, "speed": 85,  "xpReward": 25, "touchDamage": 14, "dropID": "iron_sword", "dropChance": 0.18, "goldReward": 15 },
-  { "emoji": "🦇", "maxHP": 24, "speed": 105, "xpReward": 15, "touchDamage": 10, "dropID": "cloth_top",  "dropChance": 0.22, "goldReward": 9 }
+  {
+    "emoji": "🪵",
+    "maxHP": 14,
+    "speed": 28,
+    "xpReward": 6,
+    "touchDamage": 5,
+    "goldReward": 3,
+    "sprite": "stump",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.25
+      }
+    ],
+    "level": 4,
+    "name": "나무 등걸"
+  },
+  {
+    "emoji": "🐌",
+    "maxHP": 18,
+    "speed": 32,
+    "xpReward": 8,
+    "touchDamage": 6,
+    "goldReward": 4,
+    "sprite": "snail",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.28
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.12
+      },
+      {
+        "id": "snail_shell",
+        "chance": 0.35
+      }
+    ],
+    "level": 1,
+    "name": "달팽이"
+  },
+  {
+    "emoji": "🐷",
+    "maxHP": 22,
+    "speed": 60,
+    "xpReward": 9,
+    "touchDamage": 7,
+    "goldReward": 4,
+    "sprite": "pig",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.28
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "level": 7,
+    "name": "돼지"
+  },
+  {
+    "emoji": "🍄",
+    "maxHP": 28,
+    "speed": 42,
+    "xpReward": 12,
+    "touchDamage": 8,
+    "goldReward": 6,
+    "sprite": "orange_mushroom",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.05
+      },
+      {
+        "id": "mushroom_spore",
+        "chance": 0.35
+      }
+    ],
+    "level": 6,
+    "name": "주황버섯"
+  },
+  {
+    "emoji": "🟢",
+    "maxHP": 35,
+    "speed": 50,
+    "xpReward": 14,
+    "touchDamage": 9,
+    "goldReward": 7,
+    "sprite": "slime",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.28
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.2
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      },
+      {
+        "id": "slime_bubble",
+        "chance": 0.35
+      }
+    ],
+    "level": 7,
+    "name": "슬라임"
+  },
+  {
+    "emoji": "🟠",
+    "maxHP": 48,
+    "speed": 55,
+    "xpReward": 18,
+    "touchDamage": 11,
+    "goldReward": 9,
+    "sprite": "spore",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.2
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.08
+      },
+      {
+        "id": "elixir",
+        "chance": 0.03
+      },
+      {
+        "id": "slime_bubble",
+        "chance": 0.35
+      }
+    ],
+    "level": 2,
+    "name": "스포어"
+  },
+  {
+    "emoji": "🐌",
+    "maxHP": 12,
+    "speed": 30,
+    "xpReward": 5,
+    "touchDamage": 5,
+    "goldReward": 3,
+    "sprite": "blue_snail",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "blue_snail_shell",
+        "chance": 0.35
+      }
+    ],
+    "level": 2,
+    "name": "파란 달팽이"
+  },
+  {
+    "emoji": "🐌",
+    "maxHP": 16,
+    "speed": 34,
+    "xpReward": 6,
+    "touchDamage": 5,
+    "goldReward": 3,
+    "sprite": "red_snail",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "red_snail_shell",
+        "chance": 0.35
+      }
+    ],
+    "level": 4,
+    "name": "빨간 달팽이"
+  },
+  {
+    "emoji": "🍄",
+    "maxHP": 26,
+    "speed": 42,
+    "xpReward": 11,
+    "touchDamage": 8,
+    "goldReward": 6,
+    "sprite": "green_mushroom",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      },
+      {
+        "id": "mushroom_spore",
+        "chance": 0.35
+      }
+    ],
+    "level": 10,
+    "name": "초록버섯"
+  },
+  {
+    "emoji": "🪵",
+    "maxHP": 44,
+    "speed": 30,
+    "xpReward": 18,
+    "touchDamage": 12,
+    "goldReward": 10,
+    "sprite": "dark_stump",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      },
+      {
+        "id": "elixir",
+        "chance": 0.03
+      }
+    ],
+    "level": 20,
+    "name": "검은 나무 등걸"
+  },
+  {
+    "emoji": "🐙",
+    "maxHP": 26,
+    "speed": 46,
+    "xpReward": 11,
+    "touchDamage": 8,
+    "goldReward": 6,
+    "sprite": "octopus",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      }
+    ],
+    "level": 10,
+    "name": "문어"
+  },
+  {
+    "emoji": "🪓",
+    "maxHP": 46,
+    "speed": 33,
+    "xpReward": 19,
+    "touchDamage": 12,
+    "goldReward": 10,
+    "sprite": "axe_stump",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      },
+      {
+        "id": "elixir",
+        "chance": 0.03
+      }
+    ],
+    "level": 21,
+    "name": "도끼 나무 등걸"
+  },
+  {
+    "emoji": "🐷",
+    "maxHP": 26,
+    "speed": 56,
+    "xpReward": 11,
+    "touchDamage": 8,
+    "goldReward": 6,
+    "sprite": "ribbon_pig",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      }
+    ],
+    "level": 10,
+    "name": "리본돼지"
+  },
+  {
+    "emoji": "🍄",
+    "maxHP": 30,
+    "speed": 44,
+    "xpReward": 13,
+    "touchDamage": 9,
+    "goldReward": 7,
+    "sprite": "horny_mushroom",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      },
+      {
+        "id": "mushroom_spore",
+        "chance": 0.35
+      }
+    ],
+    "level": 12,
+    "name": "뿔버섯"
+  },
+  {
+    "emoji": "🍄",
+    "maxHP": 33,
+    "speed": 48,
+    "xpReward": 14,
+    "touchDamage": 9,
+    "goldReward": 7,
+    "sprite": "blue_mushroom",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      },
+      {
+        "id": "mushroom_spore",
+        "chance": 0.35
+      }
+    ],
+    "level": 14,
+    "name": "파란버섯"
+  },
+  {
+    "emoji": "👻",
+    "maxHP": 50,
+    "speed": 35,
+    "xpReward": 21,
+    "touchDamage": 13,
+    "goldReward": 11,
+    "sprite": "ghost_stump",
+    "drops": [
+      {
+        "id": "hp_potion_s",
+        "chance": 0.3
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.18
+      },
+      {
+        "id": "hp_potion_l",
+        "chance": 0.06
+      },
+      {
+        "id": "elixir",
+        "chance": 0.03
+      }
+    ],
+    "level": 23,
+    "name": "유령 나무 등걸"
+  },
+  {
+    "emoji": "🦝",
+    "maxHP": 90,
+    "speed": 55,
+    "xpReward": 38,
+    "touchDamage": 16,
+    "goldReward": 25,
+    "sprite": "lupin",
+    "tier": 1,
+    "level": 26,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.15
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.12
+      }
+    ],
+    "name": "루팡"
+  },
+  {
+    "emoji": "👁️",
+    "maxHP": 120,
+    "speed": 45,
+    "xpReward": 45,
+    "touchDamage": 20,
+    "goldReward": 30,
+    "sprite": "curse_eye",
+    "tier": 1,
+    "level": 27,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.16
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.14
+      },
+      {
+        "id": "elixir",
+        "chance": 0.03
+      }
+    ],
+    "name": "저주의 눈"
+  },
+  {
+    "emoji": "🧿",
+    "maxHP": 130,
+    "speed": 45,
+    "xpReward": 48,
+    "touchDamage": 21,
+    "goldReward": 32,
+    "sprite": "cold_eye",
+    "tier": 1,
+    "level": 28,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.16
+      },
+      {
+        "id": "elixir",
+        "chance": 0.04
+      }
+    ],
+    "name": "차가운 눈"
+  },
+  {
+    "emoji": "🐗",
+    "maxHP": 220,
+    "speed": 70,
+    "xpReward": 75,
+    "touchDamage": 30,
+    "goldReward": 50,
+    "sprite": "iron_hog",
+    "tier": 1,
+    "level": 42,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "elixir",
+        "chance": 0.06
+      },
+      {
+        "id": "boar_tooth",
+        "chance": 0.5
+      }
+    ],
+    "name": "무쇠 멧돼지"
+  },
+  {
+    "emoji": "🐍",
+    "maxHP": 250,
+    "speed": 50,
+    "xpReward": 82,
+    "touchDamage": 32,
+    "goldReward": 55,
+    "sprite": "jr_necki",
+    "tier": 1,
+    "level": 45,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "elixir",
+        "chance": 0.07
+      },
+      {
+        "id": "boar_leather",
+        "chance": 0.5
+      }
+    ],
+    "name": "주니어 네키"
+  },
+  {
+    "emoji": "🔥",
+    "maxHP": 360,
+    "speed": 75,
+    "xpReward": 120,
+    "touchDamage": 42,
+    "goldReward": 80,
+    "sprite": "fire_boar",
+    "tier": 1,
+    "level": 58,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.25
+      },
+      {
+        "id": "elixir",
+        "chance": 0.1
+      },
+      {
+        "id": "boar_tooth",
+        "chance": 0.5
+      }
+    ],
+    "name": "불 멧돼지"
+  },
+  {
+    "emoji": "💀",
+    "maxHP": 450,
+    "speed": 55,
+    "xpReward": 150,
+    "touchDamage": 50,
+    "goldReward": 100,
+    "sprite": "skeleton",
+    "tier": 2,
+    "level": 63,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.3
+      },
+      {
+        "id": "elixir",
+        "chance": 0.18
+      },
+      {
+        "id": "boar_leather",
+        "chance": 0.25
+      }
+    ],
+    "name": "스켈레톤"
+  },
+  {
+    "emoji": "🦁",
+    "maxHP": 520,
+    "speed": 60,
+    "xpReward": 175,
+    "touchDamage": 55,
+    "goldReward": 115,
+    "sprite": "jr_cellion",
+    "tier": 2,
+    "level": 70,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.3
+      },
+      {
+        "id": "elixir",
+        "chance": 0.18
+      },
+      {
+        "id": "boar_leather",
+        "chance": 0.25
+      }
+    ],
+    "name": "주니어 셀리온"
+  },
+  {
+    "emoji": "🐺",
+    "maxHP": 680,
+    "speed": 65,
+    "xpReward": 230,
+    "touchDamage": 65,
+    "goldReward": 150,
+    "sprite": "lycanthrope",
+    "tier": 2,
+    "level": 80,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.3
+      },
+      {
+        "id": "elixir",
+        "chance": 0.18
+      },
+      {
+        "id": "boar_leather",
+        "chance": 0.25
+      }
+    ],
+    "name": "리칸스로프"
+  },
+  {
+    "emoji": "🐲",
+    "maxHP": 1000,
+    "speed": 70,
+    "xpReward": 380,
+    "touchDamage": 90,
+    "goldReward": 250,
+    "sprite": "copper_drake",
+    "tier": 2,
+    "level": 128,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.3
+      },
+      {
+        "id": "elixir",
+        "chance": 0.18
+      },
+      {
+        "id": "boar_leather",
+        "chance": 0.25
+      }
+    ],
+    "name": "카퍼 드레이크"
+  },
+  {
+    "emoji": "🐉",
+    "maxHP": 1100,
+    "speed": 72,
+    "xpReward": 400,
+    "touchDamage": 95,
+    "goldReward": 260,
+    "sprite": "drake",
+    "tier": 2,
+    "level": 128,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.3
+      },
+      {
+        "id": "elixir",
+        "chance": 0.18
+      },
+      {
+        "id": "boar_leather",
+        "chance": 0.25
+      }
+    ],
+    "name": "드레이크"
+  },
+  {
+    "emoji": "🦫",
+    "maxHP": 661,
+    "speed": 60,
+    "xpReward": 238,
+    "touchDamage": 66,
+    "goldReward": 155,
+    "sprite": "meerkat",
+    "level": 89,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "미어캣"
+  },
+  {
+    "emoji": "🦎",
+    "maxHP": 811,
+    "speed": 60,
+    "xpReward": 292,
+    "touchDamage": 76,
+    "goldReward": 190,
+    "sprite": "rash",
+    "level": 103,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "래시"
+  },
+  {
+    "emoji": "🐎",
+    "maxHP": 890,
+    "speed": 55,
+    "xpReward": 320,
+    "touchDamage": 81,
+    "goldReward": 208,
+    "sprite": "red_kentaurus",
+    "level": 110,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "레드 켄타우로스"
+  },
+  {
+    "emoji": "🦌",
+    "maxHP": 982,
+    "speed": 60,
+    "xpReward": 354,
+    "touchDamage": 87,
+    "goldReward": 230,
+    "sprite": "reindeer",
+    "level": 118,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "순록"
+  },
+  {
+    "emoji": "🧟",
+    "maxHP": 1052,
+    "speed": 45,
+    "xpReward": 379,
+    "touchDamage": 91,
+    "goldReward": 246,
+    "sprite": "coolie_zombie",
+    "level": 124,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "쿨리 좀비"
+  },
+  {
+    "emoji": "⛏️",
+    "maxHP": 1148,
+    "speed": 45,
+    "xpReward": 413,
+    "touchDamage": 96,
+    "goldReward": 268,
+    "sprite": "miner_zombie",
+    "level": 132,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "광부 좀비"
+  },
+  {
+    "emoji": "🧘",
+    "maxHP": 1260,
+    "speed": 50,
+    "xpReward": 454,
+    "touchDamage": 103,
+    "goldReward": 295,
+    "sprite": "memory_monk",
+    "level": 141,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "메모리 몽크"
+  },
+  {
+    "emoji": "🐉",
+    "maxHP": 1335,
+    "speed": 55,
+    "xpReward": 481,
+    "touchDamage": 107,
+    "goldReward": 313,
+    "sprite": "skelegon",
+    "level": 147,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "스켈레곤"
+  },
+  {
+    "emoji": "👻",
+    "maxHP": 1361,
+    "speed": 50,
+    "xpReward": 490,
+    "touchDamage": 108,
+    "goldReward": 318,
+    "sprite": "chief_qualm_guardian",
+    "level": 149,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "비통의 수호병 대장"
+  },
+  {
+    "emoji": "🦴",
+    "maxHP": 1412,
+    "speed": 55,
+    "xpReward": 508,
+    "touchDamage": 111,
+    "goldReward": 330,
+    "sprite": "skelosaurus",
+    "level": 153,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "스켈로사우루스"
+  },
+  {
+    "emoji": "👁️",
+    "maxHP": 1425,
+    "speed": 50,
+    "xpReward": 513,
+    "touchDamage": 112,
+    "goldReward": 333,
+    "sprite": "chief_oblivion_guardian",
+    "level": 154,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "망각의 수호병 대장"
+  },
+  {
+    "emoji": "🐌",
+    "maxHP": 1530,
+    "speed": 35,
+    "xpReward": 551,
+    "touchDamage": 117,
+    "goldReward": 358,
+    "sprite": "mutant_snail",
+    "level": 162,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "뮤턴트 달팽이"
+  },
+  {
+    "emoji": "🍄",
+    "maxHP": 1556,
+    "speed": 45,
+    "xpReward": 560,
+    "touchDamage": 119,
+    "goldReward": 364,
+    "sprite": "mutant_orange_mushroom",
+    "level": 164,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "뮤턴트 주황버섯"
+  },
+  {
+    "emoji": "🤖",
+    "maxHP": 1570,
+    "speed": 55,
+    "xpReward": 565,
+    "touchDamage": 119,
+    "goldReward": 367,
+    "sprite": "mateon",
+    "level": 165,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "마테온"
+  },
+  {
+    "emoji": "🟣",
+    "maxHP": 1583,
+    "speed": 45,
+    "xpReward": 570,
+    "touchDamage": 120,
+    "goldReward": 370,
+    "sprite": "mutant_slime",
+    "level": 166,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "뮤턴트 슬라임"
+  },
+  {
+    "emoji": "🤖",
+    "maxHP": 1596,
+    "speed": 55,
+    "xpReward": 575,
+    "touchDamage": 121,
+    "goldReward": 374,
+    "sprite": "plateon",
+    "level": 167,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "플라테온"
+  },
+  {
+    "emoji": "⚔️",
+    "maxHP": 1610,
+    "speed": 55,
+    "xpReward": 580,
+    "touchDamage": 122,
+    "goldReward": 377,
+    "sprite": "official_knight_a",
+    "level": 168,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "기사단 A"
+  },
+  {
+    "emoji": "⚔️",
+    "maxHP": 1637,
+    "speed": 55,
+    "xpReward": 589,
+    "touchDamage": 123,
+    "goldReward": 383,
+    "sprite": "official_knight_b",
+    "level": 170,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "기사단 B"
+  },
+  {
+    "emoji": "🛡️",
+    "maxHP": 1664,
+    "speed": 55,
+    "xpReward": 599,
+    "touchDamage": 124,
+    "goldReward": 389,
+    "sprite": "official_knight_c",
+    "level": 172,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "기사단 C"
+  },
+  {
+    "emoji": "🛡️",
+    "maxHP": 1691,
+    "speed": 55,
+    "xpReward": 609,
+    "touchDamage": 126,
+    "goldReward": 396,
+    "sprite": "official_knight_d",
+    "level": 174,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "기사단 D"
+  },
+  {
+    "emoji": "🗡️",
+    "maxHP": 1718,
+    "speed": 55,
+    "xpReward": 618,
+    "touchDamage": 127,
+    "goldReward": 402,
+    "sprite": "official_knight_e",
+    "level": 176,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "기사단 E"
+  },
+  {
+    "emoji": "🐗",
+    "maxHP": 620,
+    "speed": 70,
+    "xpReward": 223,
+    "touchDamage": 63,
+    "goldReward": 145,
+    "sprite": "iron_hog",
+    "level": 85,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "모래 멧돼지"
+  },
+  {
+    "emoji": "💀",
+    "maxHP": 725,
+    "speed": 60,
+    "xpReward": 261,
+    "touchDamage": 70,
+    "goldReward": 170,
+    "sprite": "skeleton",
+    "level": 95,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "사막 스켈레톤"
+  },
+  {
+    "emoji": "🟪",
+    "maxHP": 1801,
+    "speed": 45,
+    "xpReward": 648,
+    "touchDamage": 131,
+    "goldReward": 421,
+    "sprite": "mutant_slime",
+    "level": 182,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "뮤턴트 호러"
+  },
+  {
+    "emoji": "🌑",
+    "maxHP": 1856,
+    "speed": 55,
+    "xpReward": 668,
+    "touchDamage": 134,
+    "goldReward": 434,
+    "sprite": "official_knight_d",
+    "level": 186,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "그림자 기사"
+  },
+  {
+    "emoji": "⚙️",
+    "maxHP": 1912,
+    "speed": 55,
+    "xpReward": 688,
+    "touchDamage": 137,
+    "goldReward": 447,
+    "sprite": "plateon",
+    "level": 190,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "전투 기계"
+  },
+  {
+    "emoji": "😈",
+    "maxHP": 1983,
+    "speed": 50,
+    "xpReward": 714,
+    "touchDamage": 140,
+    "goldReward": 464,
+    "sprite": "chief_oblivion_guardian",
+    "level": 195,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "타락한 수호병"
+  },
+  {
+    "emoji": "👑",
+    "maxHP": 2055,
+    "speed": 55,
+    "xpReward": 740,
+    "touchDamage": 144,
+    "goldReward": 481,
+    "sprite": "official_knight_e",
+    "level": 200,
+    "drops": [
+      {
+        "id": "hp_potion_l",
+        "chance": 0.2
+      },
+      {
+        "id": "mp_potion",
+        "chance": 0.15
+      }
+    ],
+    "name": "정예 기사"
+  }
 ]

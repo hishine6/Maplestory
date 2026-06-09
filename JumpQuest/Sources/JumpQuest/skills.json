@@ -1,4 +1,93 @@
 [
-  { "key": "S", "name": "파워 빔", "emoji": "⚡️", "damage": 3, "range": 320, "cooldown": 2.5, "mpCost": 25, "shape": "beam",   "height": 24 },
-  { "key": "D", "name": "강타",    "emoji": "💥", "damage": 4, "range": 70,  "cooldown": 1.2, "mpCost": 15, "shape": "strike", "height": 70 }
+  {
+    "key": "S",
+    "name": "다크 임페일",
+    "emoji": "🔱",
+    "damage": 4,
+    "range": 150,
+    "cooldown": 1.1,
+    "mpCost": 18,
+    "shape": "strike",
+    "height": 96,
+    "maxTargets": 1,
+    "desc": "눈에 보이지 않을 정도로 빠르게 창을 찔러 전방의 적 다수를 공격한다."
+  },
+  {
+    "key": "D",
+    "name": "러시",
+    "emoji": "💨",
+    "damage": 5,
+    "range": 320,
+    "cooldown": 4.0,
+    "mpCost": 30,
+    "shape": "beam",
+    "height": 80,
+    "maxTargets": 8,
+    "desc": "전방으로 거칠게 돌격하며 자신 앞의 적 다수를 밀고 지나간다."
+  },
+  {
+    "key": "F",
+    "name": "궁니르 디센트",
+    "emoji": "🐲",
+    "damage": 6,
+    "range": 240,
+    "cooldown": 7.0,
+    "mpCost": 45,
+    "shape": "nova",
+    "height": 170,
+    "maxTargets": 8,
+    "desc": "신화 속의 창을 적에게 던져 치명적인 피해를 입힌다. 최대 HP에 비례해 더 큰 데미지."
+  },
+  {
+    "key": "G",
+    "name": "비홀더",
+    "emoji": "👁️",
+    "damage": 3,
+    "range": 280,
+    "cooldown": 25.0,
+    "mpCost": 50,
+    "shape": "summon",
+    "height": 60,
+    "desc": "주위에 일정 시간마다 자신을 치유해 주는 비홀더를 소환한다.",
+    "maxTargets": 1
+  },
+  {
+    "key": "R",
+    "name": "다크 스피어",
+    "emoji": "🔮",
+    "damage": 5,
+    "range": 340,
+    "cooldown": 3.5,
+    "mpCost": 28,
+    "shape": "beam",
+    "height": 80,
+    "maxTargets": 6,
+    "desc": "어둠의 힘을 담은 창을 던져 적을 공격한다. 위/아래 방향키와 함께 쓰면 그 방향으로 던진다."
+  },
+  {
+    "key": "B",
+    "name": "비홀더 임팩트",
+    "emoji": "💢",
+    "damage": 7,
+    "range": 260,
+    "cooldown": 8.0,
+    "mpCost": 45,
+    "shape": "area",
+    "height": 110,
+    "maxTargets": 8,
+    "desc": "비홀더가 본모습을 드러내 주위 적들에게 지속 피해를 입힌다. (비홀더 소환 중에만)"
+  },
+  {
+    "key": "X",
+    "name": "피어스 사이클론",
+    "emoji": "🌀",
+    "damage": 9,
+    "range": 300,
+    "cooldown": 12.0,
+    "mpCost": 60,
+    "shape": "nova",
+    "height": 150,
+    "maxTargets": 15,
+    "desc": "검은 폭풍이 보일 정도로 창을 빠르게 휘둘러 전방을 초토화시킨다."
+  }
 ]

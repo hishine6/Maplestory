@@ -1,101 +1,84 @@
-// JumpQuest 아이콘: 하늘 + 풀밭 위에 귀여운 버섯 몬스터.
+// bamtistory 아이콘: 웃는 군밤(군고구마 아님!).
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 import Foundation
 
+let outPath = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "AppIcon1024.png"
 let W = 1024
 let Wf = CGFloat(W)
 let cs = CGColorSpace(name: CGColorSpace.sRGB)!
+func rgb(_ r: CGFloat,_ g: CGFloat,_ b: CGFloat,_ a: CGFloat = 1) -> CGColor { CGColor(colorSpace: cs, components: [r,g,b,a])! }
+guard let ctx = CGContext(data: nil, width: W, height: W, bitsPerComponent: 8, bytesPerRow: 0,
+                          space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { fatalError() }
 
-func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> CGColor {
-    CGColor(colorSpace: cs, components: [r, g, b, a])!
-}
-
-guard let ctx = CGContext(
-    data: nil, width: W, height: W,
-    bitsPerComponent: 8, bytesPerRow: 0, space: cs,
-    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-) else { fatalError("컨텍스트 생성 실패") }
-
-// 둥근 배경에 클립
-let margin = Wf * 0.085
-let inner = CGRect(x: margin, y: margin, width: Wf - 2*margin, height: Wf - 2*margin)
-let corner = inner.width * 0.235
+// 둥근 사각 클립
+let margin = Wf*0.085
+let inner = CGRect(x: margin, y: margin, width: Wf-2*margin, height: Wf-2*margin)
+let corner = inner.width*0.235
 ctx.saveGState()
 ctx.addPath(CGPath(roundedRect: inner, cornerWidth: corner, cornerHeight: corner, transform: nil))
 ctx.clip()
 
-// 1) 하늘 그라데이션
-let sky = CGGradient(colorsSpace: cs,
-                     colors: [rgb(0.66, 0.89, 1.0), rgb(0.33, 0.64, 0.96)] as CFArray,
-                     locations: [0, 1])!
-ctx.drawLinearGradient(sky,
-                       start: CGPoint(x: inner.midX, y: inner.maxY),
-                       end: CGPoint(x: inner.midX, y: inner.minY),
-                       options: [])
+// 배경: 따뜻한 그라데이션 (크림 → 살구)
+let bg = CGGradient(colorsSpace: cs, colors: [rgb(1.0,0.95,0.82), rgb(1.0,0.80,0.55)] as CFArray, locations: [0,1])!
+ctx.drawLinearGradient(bg, start: CGPoint(x:0,y:Wf), end: CGPoint(x:0,y:0), options: [])
 
-// 2) 풀밭
-ctx.setFillColor(rgb(0.40, 0.78, 0.42))
-ctx.fill(CGRect(x: inner.minX, y: inner.minY, width: inner.width, height: 250))
-ctx.setFillColor(rgb(0.33, 0.68, 0.36))
-ctx.fill(CGRect(x: inner.minX, y: inner.minY + 226, width: inner.width, height: 26))
+// 군밤 몸통 path (밑 넓고 위 뾰족한 돔; y는 아래가 0)
+let cx: CGFloat = 512
+let body = CGMutablePath()
+body.move(to: CGPoint(x: cx, y: 300))
+body.addQuadCurve(to: CGPoint(x: 345, y: 380), control: CGPoint(x: 392, y: 308))
+body.addQuadCurve(to: CGPoint(x: 372, y: 610), control: CGPoint(x: 300, y: 500))
+body.addQuadCurve(to: CGPoint(x: cx, y: 720), control: CGPoint(x: 432, y: 702))
+body.addQuadCurve(to: CGPoint(x: 652, y: 610), control: CGPoint(x: 592, y: 702))
+body.addQuadCurve(to: CGPoint(x: 679, y: 380), control: CGPoint(x: 724, y: 500))
+body.addQuadCurve(to: CGPoint(x: cx, y: 300), control: CGPoint(x: 632, y: 308))
+body.closeSubpath()
 
-let cx = Wf / 2
-
-// 3) 버섯 기둥(다리)
-let stemW: CGFloat = 250
-let stemBottom: CGFloat = 300
-let stemTop: CGFloat = 600
-ctx.setFillColor(rgb(0.97, 0.91, 0.80))
-ctx.addPath(CGPath(roundedRect: CGRect(x: cx - stemW/2, y: stemBottom, width: stemW, height: stemTop - stemBottom),
-                   cornerWidth: 55, cornerHeight: 55, transform: nil))
-ctx.fillPath()
-
-// 4) 버섯 갓 (위쪽 반원만 보이게 클립 후 타원)
-let capCenterY: CGFloat = 585
-let capW: CGFloat = 470
-let capH: CGFloat = 300
+// 그림자
 ctx.saveGState()
-ctx.clip(to: CGRect(x: 0, y: capCenterY, width: Wf, height: Wf))
-ctx.setFillColor(rgb(0.97, 0.55, 0.18))   // 주황
-ctx.fillEllipse(in: CGRect(x: cx - capW/2, y: capCenterY - capH, width: capW, height: capH * 2))
-// 갓 위 흰 점
-ctx.setFillColor(rgb(1, 1, 1, 0.95))
-let spots: [(CGFloat, CGFloat, CGFloat)] = [(-120, 70, 40), (50, 120, 52), (160, 45, 32), (-25, 35, 28)]
-for (dx, dy, r) in spots {
-    ctx.fillEllipse(in: CGRect(x: cx + dx - r, y: capCenterY + dy - r, width: r*2, height: r*2))
-}
+ctx.addPath(body); ctx.setShadow(offset: CGSize(width:0,height:-14), blur: 34, color: rgb(0.3,0.15,0.05,0.45))
+ctx.setFillColor(rgb(0.5,0.3,0.16)); ctx.fillPath()
 ctx.restoreGState()
 
-// 5) 눈
-let dark = rgb(0.16, 0.17, 0.19)
-let eyeY: CGFloat = 470
-ctx.setFillColor(dark)
-for ex in [cx - 72, cx + 72] {
-    ctx.fillEllipse(in: CGRect(x: ex - 26, y: eyeY - 34, width: 52, height: 68))
-}
-ctx.setFillColor(rgb(1, 1, 1))
-for ex in [cx - 72, cx + 72] {
-    ctx.fillEllipse(in: CGRect(x: ex - 2, y: eyeY + 10, width: 18, height: 18))
-}
-
-// 6) 입 (작은 미소)
-ctx.setStrokeColor(dark)
-ctx.setLineWidth(11)
-ctx.setLineCap(.round)
-ctx.addArc(center: CGPoint(x: cx, y: 430), radius: 42,
-           startAngle: .pi * 1.22, endAngle: .pi * 1.78, clockwise: false)
-ctx.strokePath()
-
+// 몸통 그라데이션 (아래 진한밤 → 위 밝은밤)
+ctx.saveGState()
+ctx.addPath(body); ctx.clip()
+let bodyGrad = CGGradient(colorsSpace: cs, colors: [rgb(0.40,0.22,0.10), rgb(0.70,0.44,0.23)] as CFArray, locations: [0,1])!
+ctx.drawLinearGradient(bodyGrad, start: CGPoint(x:0,y:290), end: CGPoint(x:0,y:730), options: [])
+// 좌상 하이라이트
+let hi = CGGradient(colorsSpace: cs, colors: [rgb(1,0.85,0.6,0.45), rgb(1,0.85,0.6,0)] as CFArray, locations: [0,1])!
+ctx.drawRadialGradient(hi, startCenter: CGPoint(x:435,y:600), startRadius: 0, endCenter: CGPoint(x:435,y:600), endRadius: 190, options: [])
 ctx.restoreGState()
 
-// 저장
-guard let img = ctx.makeImage() else { fatalError("이미지 생성 실패") }
-let outPath = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "AppIcon1024.png"
+// 바닥 hilum (껍질 벗긴 밝은 면)
+ctx.setFillColor(rgb(0.88,0.76,0.56)); ctx.fillEllipse(in: CGRect(x: cx-118, y: 286, width: 236, height: 82))
+ctx.setFillColor(rgb(0.80,0.66,0.46)); ctx.fillEllipse(in: CGRect(x: cx-80, y: 300, width: 160, height: 44))
+
+// 군 칼집(cut) — 위쪽 크림 슬릿 두 줄
+ctx.setStrokeColor(rgb(0.97,0.87,0.62)); ctx.setLineWidth(13); ctx.setLineCap(.round)
+ctx.move(to: CGPoint(x: 548, y: 686)); ctx.addLine(to: CGPoint(x: 602, y: 612)); ctx.strokePath()
+ctx.move(to: CGPoint(x: 470, y: 666)); ctx.addLine(to: CGPoint(x: 505, y: 616)); ctx.strokePath()
+
+// 얼굴
+ctx.setFillColor(rgb(1.0,0.55,0.5,0.45))   // 볼터치
+ctx.fillEllipse(in: CGRect(x: 392, y: 432, width: 62, height: 40))
+ctx.fillEllipse(in: CGRect(x: 570, y: 432, width: 62, height: 40))
+for ex in [CGFloat(442), CGFloat(560)] {   // 눈
+  ctx.setFillColor(rgb(0.15,0.08,0.04)); ctx.fillEllipse(in: CGRect(x: ex-25, y: 474, width: 50, height: 60))
+  ctx.setFillColor(rgb(1,1,1)); ctx.fillEllipse(in: CGRect(x: ex+3, y: 508, width: 17, height: 17))
+}
+// 웃는 입
+ctx.setStrokeColor(rgb(0.15,0.08,0.04)); ctx.setLineWidth(16); ctx.setLineCap(.round)
+let mouth = CGMutablePath()
+mouth.move(to: CGPoint(x: 468, y: 444)); mouth.addQuadCurve(to: CGPoint(x: 556, y: 444), control: CGPoint(x: 512, y: 404))
+ctx.addPath(mouth); ctx.strokePath()
+
+ctx.restoreGState()  // unclip
+
+let img = ctx.makeImage()!
 let url = URL(fileURLWithPath: outPath)
-guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)
-else { fatalError("저장 대상 생성 실패") }
-CGImageDestinationAddImage(dest, img, nil)
-CGImageDestinationFinalize(dest)
-print("아이콘 저장됨: \(url.path)")
+let dst = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)!
+CGImageDestinationAddImage(dst, img, nil); CGImageDestinationFinalize(dst)
+print("icon -> \(outPath)")

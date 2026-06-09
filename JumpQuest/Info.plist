@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>JumpQuest</string>
+    <string>bamtistory</string>
     <key>CFBundleDisplayName</key>
-    <string>Jump Quest</string>
+    <string>bamtistory</string>
     <key>CFBundleIdentifier</key>
     <string>com.tony.JumpQuest</string>
     <key>CFBundleExecutable</key>

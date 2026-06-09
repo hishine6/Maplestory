@@ -1,0 +1,136 @@
+{
+  "type": "character",
+  "action": "stand1",
+  "emotion": "default",
+  "skin": 2000,
+  "zoom": 1,
+  "frame": 0,
+  "mercEars": false,
+  "illiumEars": false,
+  "selectedItems": {
+    "Body": {
+      "name": "Body",
+      "noIcon": true,
+      "id": 2000,
+      "region": "GMS",
+      "version": "217",
+      "typeInfo": {
+        "overallCategory": "Character",
+        "category": "Character",
+        "subCategory": "Body",
+        "lowItemId": 2000,
+        "highItemId": 2999
+      },
+      "hue": 0,
+      "frame": 0
+    },
+    "Head": {
+      "name": "Head",
+      "noIcon": true,
+      "id": 12000,
+      "region": "GMS",
+      "version": "217",
+      "typeInfo": {
+        "overallCategory": "Character",
+        "category": "Character",
+        "subCategory": "Head",
+        "lowItemId": 12000,
+        "highItemId": 12999
+      },
+      "hue": 0,
+      "frame": 8,
+      "saturation": 1.24,
+      "alpha": 0.48
+    },
+    "Face": {
+      "requiredJobs": [
+        "Beginner"
+      ],
+      "isCash": true,
+      "requiredGender": 2,
+      "name": "Dramatic Face",
+      "desc": "",
+      "id": 20003,
+      "typeInfo": {
+        "overallCategory": "Equip",
+        "category": "Character",
+        "subCategory": "Face",
+        "lowItemId": 20000,
+        "highItemId": 29999
+      },
+      "region": "GMS",
+      "version": "217"
+    },
+    "Hat": {
+      "requiredJobs": [
+        "Beginner"
+      ],
+      "requiredLevel": 0,
+      "isCash": true,
+      "requiredGender": 1,
+      "name": "Strawberry Headgear",
+      "desc": "",
+      "id": 1001011,
+      "typeInfo": {
+        "overallCategory": "Equip",
+        "category": "Armor",
+        "subCategory": "Hat",
+        "lowItemId": 1000000,
+        "highItemId": 1010000
+      },
+      "region": "GMS",
+      "version": "217"
+    },
+    "Two-Handed Sword": {
+      "requiredJobs": [
+        "Warrior"
+      ],
+      "requiredLevel": 120,
+      "isCash": false,
+      "requiredGender": 2,
+      "name": "GMS Claymore",
+      "desc": "",
+      "id": 1402061,
+      "typeInfo": {
+        "overallCategory": "Equip",
+        "category": "Two-Handed Weapon",
+        "subCategory": "Two-Handed Sword",
+        "lowItemId": 1400000,
+        "highItemId": 1410000
+      },
+      "region": "GMS",
+      "version": "217"
+    },
+    "Overall": {
+      "requiredJobs": [
+        "Beginner"
+      ],
+      "requiredLevel": 13,
+      "isCash": false,
+      "requiredGender": 2,
+      "name": "Pink Bean Suit",
+      "desc": "",
+      "id": 1052434,
+      "typeInfo": {
+        "overallCategory": "Equip",
+        "category": "Armor",
+        "subCategory": "Overall",
+        "lowItemId": 1050000,
+        "highItemId": 1060000
+      },
+      "region": "GMS",
+      "version": "217"
+    }
+  },
+  "visible": true,
+  "position": {
+    "x": 108,
+    "y": -161
+  },
+  "fhSnap": true,
+  "flipX": false,
+  "name": "",
+  "includeBackground": true,
+  "id": 1780240815644,
+  "animating": false
+}
