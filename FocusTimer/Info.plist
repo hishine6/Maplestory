@@ -2,11 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- 앱의 내부 이름 / 화면에 보이는 이름 -->
+    <!-- 화면에 보이는 앱 이름 (앱 전환기/알림 등) -->
     <key>CFBundleName</key>
-    <string>FocusTimer</string>
+    <string>Daily Punchclock</string>
     <key>CFBundleDisplayName</key>
-    <string>Focus Timer</string>
+    <string>Daily Punchclock</string>
 
     <!-- 앱의 고유 식별자 (회사/본인.앱이름 형태) -->
     <key>CFBundleIdentifier</key>

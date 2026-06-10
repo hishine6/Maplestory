@@ -203,6 +203,14 @@ struct MenuBarView: View {
                 Spacer()
                 Text(Fmt.human(tracker.liveTodayTotal))
                     .font(.caption).fontWeight(.semibold).monospacedDigit()
+                // 공유 채널이 설정돼 있으면, 오늘 기록을 한 번에 친구에게 보내는 버튼
+                if Sharer.isConfigured {
+                    Button { Sharer.shareToday() } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("오늘 기록을 친구 채널(Discord)에 공유")
+                }
             }
 
             HStack(spacing: 8) {

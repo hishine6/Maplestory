@@ -2,6 +2,7 @@ import SwiftUI
 import Charts
 import MapKit
 import CoreLocation
+import Combine
 
 // ============================================================
 //  DashboardView = 큰 창에 뜨는 '기록 모아보기' 화면.
@@ -16,13 +17,18 @@ import CoreLocation
 struct DashboardView: View {
     @EnvironmentObject var tracker: TimeTracker
 
-    enum Page: String, CaseIterable, Identifiable { case dashboard = "대시보드", tags = "태그", map = "지도"; var id: String { rawValue } }
+    enum Page: String, CaseIterable, Identifiable {
+        case dashboard = "대시보드", tags = "태그", map = "지도",
+             achievements = "업적", trash = "휴지통", settings = "설정"
+        var id: String { rawValue }
+    }
 
-    @State private var page: Page = .dashboard  // 대시보드 / 태그검색 전환
+    @State private var page: Page = .dashboard  // 상단 탭 선택
     @State private var mapFocused = false        // 대시보드 지도 카드: 조작(줌/이동) 허용 여부
     @State private var mapCamera: MapCameraPosition = .automatic   // 날짜 바뀌면 그 날 위치로 재조정
     @State private var anchor: Date = Date()    // 지금 보고 있는 날짜
-    @State private var showAchievements = false // 업적 카드 펼침/접힘
+    @State private var showAchievements = true  // 업적 페이지 펼침/접힘(페이지라 기본 펼침)
+    @State private var showDatePicker = false   // 달력 점프 팝오버 표시 여부
 
     private let cal = Calendar.current
 
@@ -31,13 +37,21 @@ struct DashboardView: View {
             pageSwitcher
             Divider().opacity(0.3)
             switch page {
-            case .dashboard: dashboardContent
-            case .tags:      TagSearchView()
-            case .map:       MapPageView()
+            case .dashboard:    dashboardContent
+            case .tags:         TagSearchView()
+            case .map:          MapPageView()
+            case .achievements: achievementsPage
+            case .trash:        trashPage
+            case .settings:     settingsPage
             }
         }
         .frame(minWidth: 760, minHeight: 560)
         .background(backgroundGradient)
+        // 대시보드 창을 열 때마다 '오늘 + 대시보드 탭'으로 리셋 (이전에 다른 날로 옮겨놨어도).
+        .onReceive(NotificationCenter.default.publisher(for: .dashboardDidOpen)) { _ in
+            anchor = Date()
+            page = .dashboard
+        }
     }
 
     // 맨 위: 대시보드 / 태그 페이지 전환
@@ -47,7 +61,7 @@ struct DashboardView: View {
                 ForEach(Page.allCases) { p in Text(p.rawValue).tag(p) }
             }
             .pickerStyle(.segmented)
-            .frame(width: 280)
+            .frame(width: 540)
             Spacer()
         }
         .padding(.horizontal, 20).padding(.vertical, 10)
@@ -64,13 +78,51 @@ struct DashboardView: View {
                     mapCard
                     summaryCards
                     heatmapCard
-                    achievementsCard
                     sessionListCard
-                    trashCard
-                    settingsCard
                 }
                 .padding(20)
             }
+        }
+    }
+
+    // ── 업적 탭 (전체 기간 기준, 날짜 내비 없음) ──
+    private var achievementsPage: some View {
+        ScrollView {
+            VStack(spacing: 18) { achievementsCard }
+                .padding(20)
+        }
+    }
+
+    // ── 휴지통 탭 (비어 있으면 안내) ──
+    private var trashPage: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                if tracker.trash.isEmpty {
+                    Card {
+                        VStack(spacing: 8) {
+                            Image(systemName: "trash")
+                                .font(.largeTitle).foregroundStyle(.secondary)
+                            Text("휴지통이 비어 있어요").font(.headline)
+                            Text("삭제한 기록은 7일 동안 여기 보관되고, 그 안에 복구할 수 있어요.")
+                                .font(.caption).foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                    }
+                } else {
+                    trashCard
+                }
+            }
+            .padding(20)
+        }
+    }
+
+    // ── 설정 탭 (알림·축하 효과 등 전역 설정) ──
+    private var settingsPage: some View {
+        ScrollView {
+            VStack(spacing: 18) { settingsCard }
+                .padding(20)
         }
     }
 
@@ -110,10 +162,26 @@ struct DashboardView: View {
                 Text("작업 기록")
                     .font(.title2).fontWeight(.bold)
                 Spacer()
-                // 날짜 앞뒤 이동 (하루 단위)
+                // 날짜 앞뒤 이동 (하루 단위) + 달력으로 원하는 날짜 점프
                 HStack(spacing: 4) {
                     Button { shift(-1) } label: { Image(systemName: "chevron.left") }
                     Button("오늘") { anchor = Date() }.font(.caption)
+                    // 달력 아이콘 → 그래프형 달력으로 아무 날짜나 한 번에 점프
+                    Button { showDatePicker = true } label: { Image(systemName: "calendar") }
+                        .popover(isPresented: $showDatePicker, arrowEdge: .bottom) {
+                            VStack(spacing: 10) {
+                                DatePicker("", selection: $anchor, displayedComponents: .date)
+                                    .datePickerStyle(.graphical)
+                                    .labelsHidden()
+                                    .environment(\.locale, Locale(identifier: "ko_KR"))
+                                    .frame(width: 300)
+                                Button("오늘로 이동") { anchor = Date(); showDatePicker = false }
+                                    .buttonStyle(.borderedProminent)
+                            }
+                            .padding(14)
+                        }
+                        // 날짜를 고르면(=anchor 변경) 팝오버는 자동으로 닫혀요.
+                        .onChange(of: anchor) { _, _ in showDatePicker = false }
                     Button { shift(1) } label: { Image(systemName: "chevron.right") }
                 }
                 .buttonStyle(.bordered)
@@ -482,17 +550,93 @@ struct DashboardView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 Text("설정").font(.headline)
-                HStack {
-                    Label("알림 방식", systemImage: "bell.badge").font(.callout)
-                    Spacer()
-                    Picker("", selection: $tracker.notifyStyle) {
-                        ForEach(NotifyStyle.allCases) { s in Text(s.rawValue).tag(s) }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 220)
+
+                // ── 모든 알림·축하 효과 마스터 스위치 (끄면 측정은 계속, 알림만 조용) ──
+                Toggle(isOn: $tracker.alertsEnabled) {
+                    Label("알림·축하 효과",
+                          systemImage: tracker.alertsEnabled ? "bell.fill" : "bell.slash.fill")
+                        .font(.callout)
                 }
-                Text("축하·1시간 알림을 ‘시스템 알림센터’ 또는 ‘앱 안 팝업’ 중 하나로만 보여줘요.")
+                .toggleStyle(.switch)
+                Text(tracker.alertsEnabled
+                     ? "1시간 알림·목표 축하 효과·업적 알림을 모두 보여줘요."
+                     : "모든 알림·축하 효과가 꺼져 있어요 — 시간 측정(⏱️)은 그대로 계속돼요.")
                     .font(.caption2).foregroundStyle(.secondary)
+
+                Divider().padding(.vertical, 2)
+
+                // ── 알림 방식 (알림이 켜져 있을 때만 의미 있어요) ──
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Label("알림 방식", systemImage: "bell.badge").font(.callout)
+                        Spacer()
+                        Picker("", selection: $tracker.notifyStyle) {
+                            ForEach(NotifyStyle.allCases) { s in Text(s.rawValue).tag(s) }
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 220)
+                    }
+                    Text("축하·1시간 알림을 ‘시스템 알림센터’ 또는 ‘앱 안 팝업’ 중 하나로만 보여줘요.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                .disabled(!tracker.alertsEnabled)
+                .opacity(tracker.alertsEnabled ? 1 : 0.4)
+
+                Divider().padding(.vertical, 2)
+
+                HStack {
+                    Label("축하 효과 미리보기", systemImage: "sparkles").font(.callout)
+                    Spacer()
+                    Button("하루") { Celebration.preview(tier: 1) }
+                    Button("주간") { Celebration.preview(tier: 2) }
+                    Button("월간") { Celebration.preview(tier: 3) }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                Text("목표를 달성하지 않아도 단계별 축하 효과를 바로 볼 수 있어요 — 하루 < 주간 < 월간 순으로 점점 화려해져요.")
+                    .font(.caption2).foregroundStyle(.secondary)
+
+                Divider().padding(.vertical, 2)
+
+                // ── 친구와 공유 (Discord 웹훅) ──
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("친구와 공유 (Discord)", systemImage: "person.2.fill").font(.callout)
+
+                    HStack {
+                        Text("내 이름").font(.caption).foregroundStyle(.secondary)
+                            .frame(width: 64, alignment: .leading)
+                        TextField("채널에 보일 이름 (예: Tony)", text: $tracker.shareName)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    HStack {
+                        Text("웹훅 URL").font(.caption).foregroundStyle(.secondary)
+                            .frame(width: 64, alignment: .leading)
+                        TextField("https://discord.com/api/webhooks/…", text: $tracker.shareWebhookURL)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 11, design: .monospaced))
+                    }
+
+                    Toggle(isOn: $tracker.autoShareOnGoal) {
+                        Text("하루 목표 달성하면 자동으로 공유").font(.caption)
+                    }
+                    .toggleStyle(.switch)
+                    .disabled(!Sharer.isConfigured)
+
+                    HStack {
+                        Button { Sharer.sendTest() } label: {
+                            Label("테스트 전송", systemImage: "paperplane")
+                        }
+                        Button { Sharer.shareToday() } label: {
+                            Label("지금 오늘 기록 공유", systemImage: "square.and.arrow.up")
+                        }
+                        Spacer()
+                    }
+                    .buttonStyle(.bordered).controlSize(.small)
+                    .disabled(!Sharer.isConfigured)
+
+                    Text("Discord 채널 설정 → 연동 → 웹훅 → ‘웹훅 URL 복사’ 해서 붙여넣으면, 그 채널 친구들이 푸시로 받아요. 친구도 같은 채널 웹훅을 자기 앱에 넣으면 서로 보여요. (URL은 비밀!)")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
             }
         }
     }

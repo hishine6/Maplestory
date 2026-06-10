@@ -170,10 +170,20 @@ final class DashboardWindow: NSObject, NSWindowDelegate {
         NSApp.setActivationPolicy(.regular)
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+
+        // 대시보드를 '열 때마다' 오늘 + 대시보드 탭으로 리셋하라고 화면에 알려요.
+        // (창은 재사용돼서 이전에 보던 날짜가 그대로 남기 때문)
+        NotificationCenter.default.post(name: .dashboardDidOpen, object: nil)
     }
 
     // 창을 닫으면 다시 메뉴바 전용(.accessory)으로 돌아가요.
     func windowWillClose(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
     }
+}
+
+
+// 대시보드가 열릴 때마다 화면(DashboardView)에 '오늘로 리셋'을 알리는 신호.
+extension Notification.Name {
+    static let dashboardDidOpen = Notification.Name("FocusTimer.dashboardDidOpen")
 }

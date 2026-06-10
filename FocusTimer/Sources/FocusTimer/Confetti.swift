@@ -2,57 +2,12 @@ import SwiftUI
 import AppKit
 
 // ============================================================
-//  화면 전체에 컨페티(색종이)가 쏟아지는 축하 효과.
-//  핵심 아이디어:
-//   - 화면을 꽉 채우는 '투명한 borderless 창'을 모든 것 위에 띄우고
-//   - 클릭은 통과(ignoresMouseEvents)시켜 일하던 걸 막지 않고
-//   - SwiftUI Canvas로 색종이 입자를 매 프레임 그려서 떨어뜨리고
-//   - 몇 초 뒤 자동으로 닫아요.
-//  (1시간 토스트 창과 같은 기술을 '화면 전체 + 클릭통과'로 키운 거예요)
+//  화면 전체에 쏟아지는 '컨페티(색종이)' 효과 View.
+//  - 예전엔 이 파일이 창 띄우는 일까지 했지만, 이제 창 관리는 범용
+//    EffectOverlay 가 맡고(여기 EffectOverlay.swift), 이 파일은 '색종이를
+//    그리는 View(ConfettiView)' 와 입자 데이터(ConfettiPiece/Factory)만 담아요.
+//  - 그래서 불꽃놀이·풍선 같은 다른 효과와 ZStack 으로 겹쳐 쓸 수 있어요.
 // ============================================================
-@MainActor
-final class ConfettiOverlay {
-    static let shared = ConfettiOverlay()
-    private var windows: [NSWindow] = []
-    private var clearItem: DispatchWorkItem?
-
-    func fire(duration: Double = 3.6) {
-        // 손쉬운 사용(모션 줄이기) 설정이 켜져 있으면 컨페티는 생략해요.
-        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
-
-        dismiss()  // 이전 게 남아 있으면 정리
-
-        // 연결된 모니터마다 하나씩 띄워요.
-        for screen in NSScreen.screens {
-            let view = ConfettiView(pieces: ConfettiFactory.make(180), birth: Date())
-            let hosting = NSHostingView(rootView: view)
-
-            let w = NSWindow(contentRect: screen.frame,
-                             styleMask: [.borderless], backing: .buffered, defer: false)
-            w.contentView = hosting
-            w.isOpaque = false
-            w.backgroundColor = .clear
-            w.hasShadow = false
-            w.ignoresMouseEvents = true                       // 클릭 통과
-            w.level = .screenSaver                             // 거의 모든 것 위에
-            w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-            w.setFrame(screen.frame, display: true)
-            w.orderFrontRegardless()                           // 앱이 비활성이어도 보여줌
-            windows.append(w)
-        }
-
-        // duration 뒤 자동으로 닫기
-        let item = DispatchWorkItem { [weak self] in self?.dismiss() }
-        clearItem = item
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: item)
-    }
-
-    func dismiss() {
-        clearItem?.cancel()
-        for w in windows { w.orderOut(nil) }
-        windows.removeAll()
-    }
-}
 
 
 // ── 색종이 한 조각의 정보 ───────────────────────────────────

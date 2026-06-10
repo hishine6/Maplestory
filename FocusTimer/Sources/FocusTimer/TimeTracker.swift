@@ -31,6 +31,27 @@ final class TimeTracker: ObservableObject {
         didSet { UserDefaults.standard.set(notifyStyle.rawValue, forKey: "notifyStyle") }
     }
 
+    // 모든 자동 알림·축하 효과 on/off 마스터 스위치. false면 1시간 토스트·목표
+    // 컨페티/불꽃·업적 알림이 전부 조용해져요. **측정(시간 기록)은 그대로 계속**되고,
+    // 마일스톤 기록도 내부적으로는 진행돼서, 다시 켜도 밀린 알림이 한꺼번에 안 터져요.
+    // (설정 카드의 '미리보기' 버튼은 직접 누르는 거라 꺼도 동작해요.)
+    @Published var alertsEnabled: Bool = true {
+        didSet { UserDefaults.standard.set(alertsEnabled, forKey: "alertsEnabled") }
+    }
+
+    // ── 친구와 공유 (Discord 웹훅) ─────────────────────────
+    // 웹훅 URL로 '오늘 N시간' 같은 한 줄을 보내면, 그 채널에 있는 친구들이
+    // 푸시로 봐요. 각자 자기 이름을 적어두면 채널에서 누가 누군지 구분돼요.
+    @Published var shareWebhookURL: String = "" {
+        didSet { UserDefaults.standard.set(shareWebhookURL, forKey: "shareWebhookURL") }
+    }
+    @Published var shareName: String = "" {            // 채널에 표시될 내 이름
+        didSet { UserDefaults.standard.set(shareName, forKey: "shareName") }
+    }
+    @Published var autoShareOnGoal: Bool = false {     // 하루 목표 달성 시 자동 공유
+        didSet { UserDefaults.standard.set(autoShareOnGoal, forKey: "autoShareOnGoal") }
+    }
+
     // 1초마다 신호를 주는 타이머 (메뉴바 시간을 실시간으로 흐르게 함)
     private var ticker: AnyCancellable?
 
@@ -96,6 +117,12 @@ final class TimeTracker: ObservableObject {
            let style = NotifyStyle(rawValue: raw) {
             notifyStyle = style
         }
+        if let on = UserDefaults.standard.object(forKey: "alertsEnabled") as? Bool {
+            alertsEnabled = on
+        }
+        shareWebhookURL = UserDefaults.standard.string(forKey: "shareWebhookURL") ?? ""
+        shareName = UserDefaults.standard.string(forKey: "shareName") ?? ""
+        autoShareOnGoal = UserDefaults.standard.bool(forKey: "autoShareOnGoal")
         unlocked = Set(UserDefaults.standard.array(forKey: "unlockedAchievements") as? [String] ?? [])
 
         load()  // 앱 켜질 때 저장돼 있던 기록 불러오기
