@@ -472,6 +472,10 @@ struct DashboardView: View {
                     }
                     .frame(height: 260)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    // '지도 조작'을 켜지 않은 동안엔 지도가 스크롤을 가로채지 않게 해서,
+                    // 지도 위에서도 대시보드가 그대로 스크롤되게 해요.
+                    // (조작 토글은 overlay라 위에 떠서 항상 눌려요.)
+                    .allowsHitTesting(mapFocused)
                     .overlay(alignment: .topTrailing) { MapFocusToggle(focused: $mapFocused) }
                     // 날짜를 넘기면 그 날 위치들로 지도를 다시 맞춰요.
                     .onChange(of: anchor) { _, _ in mapCamera = .automatic }

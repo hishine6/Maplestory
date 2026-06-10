@@ -129,8 +129,12 @@ struct MenuBarView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            // 4) 최근 쓴 태그 (탭하면 추가) — 이미 붙인 건 빼고 보여줘요
-            let recent = tracker.recentTags().filter { !tracker.draftTags.contains($0) }
+            // 4) 최근 쓴 태그 (탭하면 추가) — 이미 붙인 건 빼고, '최근 것 중 최대 3개'를
+            //    골라 '가나다순'으로 고정 표시(쓸 때마다 순서가 왔다갔다 하지 않게).
+            let recent = tracker.recentTags(limit: 12)
+                .filter { !tracker.draftTags.contains($0) }
+                .prefix(3)
+                .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
             if !recent.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("최근 쓴 태그").font(.caption2).foregroundStyle(.tertiary)
