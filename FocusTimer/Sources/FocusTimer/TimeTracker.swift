@@ -52,6 +52,16 @@ final class TimeTracker: ObservableObject {
         didSet { UserDefaults.standard.set(autoShareOnGoal, forKey: "autoShareOnGoal") }
     }
 
+    // ── 집중 확인(졸음 방지) ───────────────────────────────
+    // 켜면 측정 중 가끔 화면 테두리에 버튼이 떠요. 30초 안에 안 누르면 실패,
+    // 3번 연속 실패하면 '졸기 시작한 첫 실패 시각'으로 측정을 자동 종료해요.
+    @Published var focusCheckEnabled: Bool = false {
+        didSet { UserDefaults.standard.set(focusCheckEnabled, forKey: "focusCheckEnabled") }
+    }
+    @Published var focusCheckIntervalMinutes: Int = 15 {   // 확인이 뜨는 주기(분)
+        didSet { UserDefaults.standard.set(focusCheckIntervalMinutes, forKey: "focusCheckInterval") }
+    }
+
     // 1초마다 신호를 주는 타이머 (메뉴바 시간을 실시간으로 흐르게 함)
     private var ticker: AnyCancellable?
 
@@ -123,6 +133,10 @@ final class TimeTracker: ObservableObject {
         shareWebhookURL = UserDefaults.standard.string(forKey: "shareWebhookURL") ?? ""
         shareName = UserDefaults.standard.string(forKey: "shareName") ?? ""
         autoShareOnGoal = UserDefaults.standard.bool(forKey: "autoShareOnGoal")
+        focusCheckEnabled = UserDefaults.standard.bool(forKey: "focusCheckEnabled")
+        if let iv = UserDefaults.standard.object(forKey: "focusCheckInterval") as? Int {
+            focusCheckIntervalMinutes = iv
+        }
         unlocked = Set(UserDefaults.standard.array(forKey: "unlockedAchievements") as? [String] ?? [])
 
         load()  // 앱 켜질 때 저장돼 있던 기록 불러오기
@@ -176,6 +190,7 @@ final class TimeTracker: ObservableObject {
     func start() {
         guard runningStart == nil else { return }
         runningStart = Date()
+        FocusCheck.shared.measurementDidStart()   // 졸음 방지 확인 스케줄 시작
     }
 
     // 측정 멈춤: 시작~(지정 시각 또는 지금)을 한 구간으로 저장하고 초기화해요.
@@ -203,6 +218,7 @@ final class TimeTracker: ObservableObject {
         draftNote = ""
         draftTags = []
         draftLocation = nil
+        FocusCheck.shared.measurementDidStop()    // 졸음 방지 확인 예약/창 정리
     }
 
     // ── 입력 중(draft)인 태그 다루기 ────────────────────────

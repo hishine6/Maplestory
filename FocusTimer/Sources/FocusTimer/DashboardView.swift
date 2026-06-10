@@ -588,6 +588,31 @@ struct DashboardView: View {
 
                 Divider().padding(.vertical, 2)
 
+                // ── 집중 확인 (졸음 방지) ──
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle(isOn: $tracker.focusCheckEnabled) {
+                        Label("집중 확인 (졸음 방지)", systemImage: "eye.fill").font(.callout)
+                    }
+                    .toggleStyle(.switch)
+                    if tracker.focusCheckEnabled {
+                        HStack {
+                            Text("확인 주기").font(.caption).foregroundStyle(.secondary)
+                            Stepper("\(tracker.focusCheckIntervalMinutes)분마다",
+                                    value: $tracker.focusCheckIntervalMinutes, in: 5...60, step: 5)
+                                .font(.caption)
+                            Spacer()
+                            Button("지금 테스트") { FocusCheck.shared.testNow() }
+                                .controlSize(.small).buttonStyle(.bordered)
+                        }
+                    }
+                    Text("측정 중 가끔 화면 테두리에 버튼이 떠요. 30초 안에 누르세요. 3번 연속 놓치면 — 졸기 시작한 시각으로 되돌려 — 측정을 자동으로 멈춰요.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                .onChange(of: tracker.focusCheckEnabled) { _, _ in FocusCheck.shared.settingsChanged() }
+                .onChange(of: tracker.focusCheckIntervalMinutes) { _, _ in FocusCheck.shared.settingsChanged() }
+
+                Divider().padding(.vertical, 2)
+
                 HStack {
                     Label("축하 효과 미리보기", systemImage: "sparkles").font(.callout)
                     Spacer()

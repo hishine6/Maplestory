@@ -108,6 +108,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         awayReasons.insert(reason)
         guard wasHome else { return }          // 이미 비운 상태면 타이머 유지(처음 비운 시각 기준)
         awayStart = Date()
+        FocusCheck.shared.setAway(true)        // 자리 비운 동안엔 집중 확인을 멈춰요
         let item = DispatchWorkItem { [weak self] in
             MainActor.assumeIsolated { self?.autoStopIfStillAway() }
         }
@@ -121,6 +122,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         autoStopItem?.cancel()                      // 다 돌아왔으면 자동종료 취소
         autoStopItem = nil
         awayStart = nil
+        FocusCheck.shared.setAway(false)            // 돌아왔으니 집중 확인 재개
     }
 
     private func autoStopIfStillAway() {
